@@ -9,6 +9,7 @@ using Distributions
 using Statistics
 using PrettyTables
 
+include("normalize.jl")
 include("impute.jl")
 include("utils.jl")
 
