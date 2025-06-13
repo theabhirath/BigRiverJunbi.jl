@@ -2,6 +2,12 @@
     intnorm(mat::Matrix{T}; dims::Int64 = 2, lambda::Float64 = 1.0) where T <: Real
 
 Total Area Normalization for each row or column. By default, it normalizes each row.
+This requires that the matrix has all positive values.
+
+# Arguments
+- `mat`: The matrix to normalize.
+- `dims`: The dimension to normalize across. Default is 2.
+- `lambda`: The lambda parameter for the normalization. Default is 1.0.
 
 # Examples
 
@@ -22,6 +28,9 @@ julia> BigRiverJunbi.intnorm(mat)
 ```
 """
 function intnorm(mat::Matrix{T}; dims::Int64 = 2, lambda::Float64 = 1.0) where {T <: Real}
+    # if matrix has any negative values, throw an error
+    @assert all(mat .>= 0) "Matrix has negative values. Please remove negative values" *
+                           " before normalizing."
     return mat ./ (lambda .* sum(mat; dims = dims))
 end
 
@@ -29,27 +38,34 @@ end
     pqnorm(mat::Matrix{Float64})
 
 Performs a probabilistic quotient normalization (PQN) for sample intensities.
-This assumes that the matrix is organized as samples x features.
+This assumes that the matrix is organized as samples x features and requires that the
+matrix have all positive values.
+
+# Arguments
+- `mat`: The matrix to normalize.
 
 # Examples
 
 ```jldoctest
 julia> mat = [0.5 1 2 3 3.5;
-             7 3 5 1.5 3.5;
+             7 3 5 1.5 4;
              8 2 5 6 9]
 3×5 Matrix{Float64}:
  0.5  1.0  2.0  3.0  3.5
- 7.0  3.0  5.0  1.5  3.5
+ 7.0  3.0  5.0  1.5  4.0
  8.0  2.0  5.0  6.0  9.0
 
 julia> BigRiverJunbi.pqnorm(mat)
 3×5 Matrix{Float64}:
  0.05      0.1        0.2       0.3   0.35
- 0.28      0.12       0.2       0.06  0.14
+ 0.28      0.12       0.2       0.06  0.16
  0.266667  0.0666667  0.166667  0.2   0.3
 ```
 """
 function pqnorm(mat::Matrix{T}) where {T <: Real}
+    # if matrix has any negative values, throw an error
+    @assert all(mat .>= 0) "Matrix has negative values. Please remove negative values" *
+                           " before normalizing."
     # Integral normalization
     mat = intnorm(mat; dims = 2)
     # Calculate the reference spectrum (default: median) of all samples
@@ -69,6 +85,9 @@ end
 
 Performs quantile normalization for sample intensities. This assumes
 that the matrix is organized as samples x features.
+
+# Arguments
+- `data`: The matrix to normalize.
 
 # Examples
 
