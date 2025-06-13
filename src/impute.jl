@@ -10,10 +10,10 @@ specified dimension and returns a new array without modifying the original array
 
 # Arguments
 
-`data`: array of values. One example: matrix of metabolomics data, where the rows are the
-        features and the columns are the samples.
-`statistic`: function that calculates the value to substitute the missing values.
-`dims`: dimension along which the statistic is calculated.
+- `data`: array of values. One example: matrix of metabolomics data, where the rows are
+  the features and the columns are the samples.
+- `statistic`: function that calculates the value to substitute the missing values.
+- `dims`: dimension along which the statistic is calculated.
 """
 function substitute(
         data::AbstractArray{Union{Missing, Float64}},
@@ -35,10 +35,10 @@ specified dimension and modifies the original array in place.
 
 # Arguments
 
-`data`: array of values. One example: matrix of metabolomics data, where the rows are the
-        features and the columns are the samples.
-`statistic`: function that calculates the value to substitute the missing values.
-`dims`: dimension along which the statistic is calculated.
+- `data`: array of values. One example: matrix of metabolomics data, where the rows are the
+  features and the columns are the samples.
+- `statistic`: function that calculates the value to substitute the missing values.
+- `dims`: dimension along which the statistic is calculated.
 """
 function substitute!(
         data::AbstractArray{Union{Missing, Float64}},
@@ -80,8 +80,8 @@ Replaces missing elements in the specified columns with zero.
 
 # Arguments
 
-`df`: dataframe with missing values.
-`start_col`: column index to start imputing from.
+- `df`: dataframe with missing values.
+- `start_col`: column index to start imputing from.
 
 # Examples
 
@@ -107,6 +107,7 @@ julia> BigRiverJunbi.impute_zero(df)
    1 │      1.0       0.0       0.0       6.0       0.0
    2 │      2.0       0.0       4.0       0.0       0.0
    3 │      3.0       0.0       5.0       7.0      10.0
+```
 """
 function impute_zero(df::DataFrame; start_col::Int64 = 1)
     m = Matrix{Union{Missing, Float64}}(df[:, start_col:end])
@@ -122,7 +123,7 @@ matrix.
 
 # Arguments
 
-`data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
+- `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
         and the columns are the features.
 """
 impute_zero(data::Matrix{Union{Missing, Float64}}) = impute_zero!(trycopy(data))
@@ -131,8 +132,13 @@ impute_zero(data::Matrix{Union{Missing, Float64}}) = impute_zero!(trycopy(data))
     impute_zero!(data::Matrix{Union{Missing, Float64}})
 
 Modifies the original matrix in place to replace missing elements with zero.
+
+# Arguments
+
+- `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
+  and the columns are the features.
 """
-impute_zero!(data::Matrix{Union{Missing, Float64}}) = substitute!(data, zero; dims = 1)
+impute_zero!(data::Matrix{Union{Missing, Float64}}) = substitute!(data, x -> 0; dims = 1)
 
 """
     impute_min(df::DataFrame; start_col::Int64 = 1)
@@ -142,8 +148,8 @@ in the corresponding variable.
 
 # Arguments
 
-`df`: dataframe with missing values.
-`start_col`: column index to start imputing from.
+- `df`: dataframe with missing values.
+- `start_col`: column index to start imputing from.
 
 # Examples
 
@@ -154,12 +160,22 @@ julia> df = DataFrame(A = [1, 2, 3],
                  D = [6, missing, 7],
                  E = [missing, missing, 10])
 3×5 DataFrame
+ Row │ A      B        C        D        E
+     │ Int64  Missing  Int64?   Int64?   Int64?
+─────┼───────────────────────────────────────────
+   1 │     1  missing  missing        6  missing 
+   2 │     2  missing        4  missing  missing 
+   3 │     3  missing        5        7       10
+
+julia> BigRiverJunbi.impute_min(df)
+3×5 DataFrame
  Row │ A         B         C         D         E
-     │ Float64?  Float64?  Float64?  Float64?  Float64?
+     │ Float64?  Float64?  Float64?  Float64?  Float64? 
 ─────┼──────────────────────────────────────────────────
    1 │      1.0       1.0       1.0       6.0       1.0
    2 │      2.0       2.0       4.0       2.0       2.0
    3 │      3.0       3.0       5.0       7.0      10.0
+```
 """
 function impute_min(df::DataFrame; start_col::Int64 = 1)
     m = Matrix{Union{Missing, Float64}}(df[:, start_col:end])
@@ -178,10 +194,10 @@ the median value of the population of line-wise standard deviations.
 
 # Arguments
 
-`df`: dataframe with missing values.
-`start_col`: column index to start imputing from.
-`q`: quantile of the minimum values to use for imputation. Default is 0.01.
-`tune_sigma`: coefficient that controls the sd of the MNAR distribution:
+- `df`: dataframe with missing values.
+- `start_col`: column index to start imputing from.
+- `q`: quantile of the minimum values to use for imputation. Default is 0.01.
+- `tune_sigma`: coefficient that controls the sd of the MNAR distribution:
                 - 1 if the complete data distribution is supposed to be gaussian.
                 - 0 < tune_sigma < 1 if the complete data distribution is supposed to be
                   left-censored.
@@ -203,10 +219,10 @@ original matrix.
 
 # Arguments
 
-`data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
-        and the columns are the features.
-`q`: quantile of the minimum values to use for imputation. Default is 0.01.
-`tune_sigma`: coefficient that controls the sd of the MNAR distribution:
+- `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
+  and the columns are the features.
+- `q`: quantile of the minimum values to use for imputation. Default is 0.01.
+- `tune_sigma`: coefficient that controls the sd of the MNAR distribution:
                 - 1 if the complete data distribution is supposed to be gaussian.
                 - 0 < tune_sigma < 1 if the complete data distribution is supposed to be
                   left-censored.
@@ -225,10 +241,10 @@ population of line-wise standard deviations. Modifies the original matrix in pla
 
 # Arguments
 
-`data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
-        and the columns are the features.
-`q`: quantile of the minimum values to use for imputation. Default is 0.01.
-`tune_sigma`: coefficient that controls the sd of the MNAR distribution:
+- `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
+  and the columns are the features.
+- `q`: quantile of the minimum values to use for imputation. Default is 0.01.
+- `tune_sigma`: coefficient that controls the sd of the MNAR distribution:
                 - 1 if the complete data distribution is supposed to be gaussian.
                 - 0 < tune_sigma < 1 if the complete data distribution is supposed to be
                   left-censored.
@@ -265,6 +281,11 @@ end
 
 Replaces missing elements in the specified columns with half of the minimum of
 non-missing elements in the corresponding variable.
+
+# Arguments
+
+- `df`: dataframe with missing values.
+- `start_col`: column index to start imputing from.
 
 # Examples
 
@@ -303,7 +324,7 @@ function impute_half_min(m::Matrix{Union{Missing, Float64}})
 end
 
 """
-    impute_cat(df_missing::DataFrame; startCol::Int64 = 1)
+    impute_cat(df_missing::DataFrame; start_col::Int64 = 1)
 
 Returns imputated dataframe based on a categorical imputation:
     - 0: Missing values
@@ -312,8 +333,8 @@ Returns imputated dataframe based on a categorical imputation:
 
 # Arguments
 
-`df_missing`: dataframe with missing values.
-`startCol`: column index to start imputing from.
+- `df_missing`: dataframe with missing values.
+- `start_col`: column index to start imputing from.
 
 # Examples
 
@@ -339,11 +360,12 @@ julia> BigRiverJunbi.impute_cat(df)
    1 │      1.0       0.0       0.0       1.0       0.0
    2 │      2.0       0.0       1.0       0.0       0.0
    3 │      2.0       0.0       2.0       2.0       2.0
+```
 """
-function impute_cat(df_missing::DataFrame; startCol::Int64 = 1)
-    m = Matrix{Union{Missing, Float64}}(df_missing[:, startCol:end])
+function impute_cat(df_missing::DataFrame; start_col::Int64 = 1)
+    m = Matrix{Union{Missing, Float64}}(df_missing[:, start_col:end])
     m = impute_cat(m)
-    return DataFrame(m, Symbol.(names(df_missing)[startCol:end]))
+    return DataFrame(m, Symbol.(names(df_missing)[start_col:end]))
 end
 
 """
@@ -357,8 +379,8 @@ Returns a new matrix without modifying the original matrix.
 
 # Arguments
 
-`data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
-        and the columns are the features.
+- `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
+  and the columns are the features.
 """
 impute_cat(data::Matrix{Union{Missing, Float64}}) = impute_cat!(trycopy(data))
 
@@ -373,8 +395,8 @@ Modifies the original matrix in place.
 
 # Arguments
 
-`data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
-        and the columns are the features.
+- `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
+  and the columns are the features.
 """
 function impute_cat!(data::Matrix{Union{Missing, Float64}})
     @views for i in axes(data, 2)
@@ -410,14 +432,14 @@ imputation method from [Impute.jl](https://github.com/invenia/Impute.jl).
 
 # Arguments
 
-`data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
-        and the columns are the features.
-`k`: number of nearest neighbors to use for imputation.
-`threshold`: threshold for the number of missing neighbors.
-`dims`: dimension along which the statistic is calculated.
-`distance`: distance metric to use for the nearest neighbors search, taken from
-            Distances.jl. Default is `Euclidean()`. This can only be one of the
-            Minkowski metrics i.e. Euclidean, Cityblock, Minkowski and Chebyshev.
+- `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
+  and the columns are the features.
+- `k`: number of nearest neighbors to use for imputation.
+- `threshold`: threshold for the number of missing neighbors.
+- `dims`: dimension along which the statistic is calculated.
+- `distance`: distance metric to use for the nearest neighbors search, taken from
+  Distances.jl. Default is `Euclidean()`. This can only be one of the
+  Minkowski metrics i.e. Euclidean, Cityblock, Minkowski and Chebyshev.
 """
 function imputeKNN(
         data::AbstractMatrix{Union{Missing, Float64}},
@@ -450,14 +472,14 @@ method from [Impute.jl](https://github.com/invenia/Impute.jl).
 
 # Arguments
 
-`data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
-        and the columns are the features.
-`k`: number of nearest neighbors to use for imputation.
-`threshold`: threshold for the number of missing neighbors.
-`dims`: dimension along which the statistic is calculated.
-`distance`: distance metric to use for the nearest neighbors search, taken from
-            Distances.jl. Default is `Euclidean()`. This can only be one of the
-            Minkowski metrics i.e. Euclidean, Cityblock, Minkowski and Chebyshev.
+- `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
+  and the columns are the features.
+- `k`: number of nearest neighbors to use for imputation.
+- `threshold`: threshold for the number of missing neighbors.
+- `dims`: dimension along which the statistic is calculated.
+- `distance`: distance metric to use for the nearest neighbors search, taken from
+  Distances.jl. Default is `Euclidean()`. This can only be one of the
+  Minkowski metrics i.e. Euclidean, Cityblock, Minkowski and Chebyshev.
 """
 function imputeKNN!(
         data::AbstractMatrix{Union{Missing, Float64}},
@@ -518,9 +540,9 @@ Replaces missing elements based on k-nearest neighbors (KNN) imputation.
 
 # Arguments
 
-`df`: dataframe with missing values.
-`k`: number of nearest neighbors to use for imputation.
-`threshold`: threshold for the number of missing neighbors.
+- `df`: dataframe with missing values.
+- `k`: number of nearest neighbors to use for imputation.
+- `threshold`: threshold for the number of missing neighbors.
 """
 function imputeKNN(
         df::DataFrame;
@@ -541,8 +563,8 @@ Imputation for left-censored data" (QRILC) method.
 
 # Arguments
 
-`df`: dataframe with missing values.
-`start_col`: column index to start imputing from.
+- `df`: dataframe with missing values.
+- `start_col`: column index to start imputing from.
 """
 function impute_QRILC(df::DataFrame; start_col::Int64 = 1)
     mat = Matrix{Union{Missing, Float64}}(df[:, start_col:end])
@@ -564,14 +586,14 @@ instead of 0.001.
 
 # Arguments
 
-`data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
-        and the columns are the features.
-`tune_sigma`: coefficient that controls the sd of the MNAR distribution:
+- `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
+  and the columns are the features.
+- `tune_sigma`: coefficient that controls the sd of the MNAR distribution:
                 - 1 if the complete data distribution is supposed to be gaussian.
                 - 0 < tune_sigma < 1 if the complete data distribution is supposed to be
                   left-censored.
-               Default is 1.0.
-`eps`: small value added to the quantile for stability.
+  Default is 1.0.
+- `eps`: small value added to the quantile for stability.
 """
 function impute_QRILC(
         data::Matrix{Union{Missing, Float64}};
@@ -595,13 +617,13 @@ default value of `eps` is set to 0.005 instead of 0.001.
 
 # Arguments
 
-`data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
-        and the columns are the features.
-`tune_sigma`: coefficient that controls the sd of the MNAR distribution:
+- `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
+  and the columns are the features.
+- `tune_sigma`: coefficient that controls the sd of the MNAR distribution:
                 - 1 if the complete data distribution is supposed to be gaussian.
                 - 0 < tune_sigma < 1 if the complete data distribution is supposed to be
                   left-censored.
-`eps`: small value added to the quantile for stability.
+- `eps`: small value added to the quantile for stability.
 """
 # TODO: elaborate on eps and why it is set to 0.005
 function impute_QRILC!(
@@ -619,9 +641,11 @@ function impute_QRILC!(
         upper_q = 0.99
         q_normal = quantile(Normal(0, 1), LinRange(pNAs + eps, upper_q + eps, 100))
         q_curr_sample = quantile(
-            skipmissing(curr_sample), LinRange(eps, upper_q + eps, 100))
+            skipmissing(curr_sample), LinRange(eps, upper_q + eps, 100)
+        )
         temp_QR = lm(
-            hcat(ones(length(q_normal), 1), reshape(q_normal, :, 1)), q_curr_sample)
+            hcat(ones(length(q_normal), 1), reshape(q_normal, :, 1)), q_curr_sample
+        )
         # get the coefficients of the quantile regression
         coefs = coef(temp_QR)
         mean_CDD, sd_CDD = coefs[1], abs(coefs[2])
