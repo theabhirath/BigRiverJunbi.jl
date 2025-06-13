@@ -5,8 +5,8 @@ Computes logarithm base 2 on a matrix, adding a constant to all values to avoid
 log(0). This requires that the matrix has all positive values.
 
 # Arguments
-- `mat::Matrix{Float64}`: The matrix to transform.
-- `eps::Float64`: The constant to add to all values. Default is 1.0.
+- `mat`: The matrix to transform.
+- `eps`: The constant to add to all values. Default is 1.0.
 
 # Examples
 
@@ -39,8 +39,8 @@ Mean center a matrix across the specified dimension. This requires that the matr
 all positive values.
 
 # Arguments
-- `mat::Matrix{Float64}`: The matrix to transform.
-- `dims::Int64`: The dimension to mean center across. Default is 1.
+- `mat`: The matrix to transform.
+- `dims`: The dimension to mean center across. Default is 1.
 
 # Examples
 

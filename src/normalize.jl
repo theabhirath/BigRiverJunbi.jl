@@ -88,7 +88,6 @@ julia> BigRiverJunbi.quantilenorm(mat)
  6.2  4.1  4.1  6.2  6.2
 ```
 """
-# TODO: decide on a single method to break ties
 function quantilenorm(data::Matrix{T}) where {T <: Real}
     # creates a matrix of ranks for each column
     ranks = reduce(hcat, StatsBase.competerank.(eachcol(data)))
@@ -98,22 +97,6 @@ function quantilenorm(data::Matrix{T}) where {T <: Real}
     data_mean = mean(data_sorted; dims = 2)
     data_sorted_idxs = sortperm(data_mean; dims = 1)
     data_mean_ranked = Dict(zip(data_sorted_idxs, data_mean))
-    # data_mean_sorted = data_mean[data_sorted_idxs]
-    # Another way to break ties – averaging the ranks
-    # # custom function to get the value of a key in the mean ranked dictionary
-    # function _get_dict_custom(d::Dict, k::T) where T <: Real
-    #     # use try-catch as a fast fallback – we assume that
-    #     # all keys are consistent with either N or N.5
-    #     try
-    #         return d[k]
-    #     catch
-    #         return (d[k - 0.5] + d[k + 0.5]) / 2
-    #     end
-    # end
-    # substitute the ranks with the corresponding values using a custom function
-    # results = mapslices(ranks, dims = 1) do x
-    #     map(Base.Fix1(_get_dict_custom, data_mean_ranked), x)
-    # end
     results = mapslices(ranks, dims = 1) do x
         get.(Ref(data_mean_ranked), x, missing)
     end
