@@ -378,7 +378,7 @@ function imputeKNN!(
     # get mask array
     missing_mask = ismissing.(X)
     # impute missing values as mean
-    X = substitute(X, mean; dims = 1)
+    X = substitute!(X, mean; dims = 1)
     # disallow missing values
     X = disallowmissing(X)
     # search points are observations containing missing values
