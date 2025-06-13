@@ -303,6 +303,99 @@ function impute_half_min(m::Matrix{Union{Missing, Float64}})
 end
 
 """
+    impute_cat(df_missing::DataFrame; startCol::Int64 = 1)
+
+Returns imputated dataframe based on a categorical imputation:
+    - 0: Missing values
+    - 1: Values below the median
+    - 2: Values equal to or above the median
+
+# Arguments
+
+`df_missing`: dataframe with missing values.
+`startCol`: column index to start imputing from.
+
+# Examples
+
+```jldoctest
+julia> df = DataFrame(A = [1, 2, 3],
+                 B = [missing, missing, missing],
+                 C = [missing, 4, 5],
+                 D = [6, missing, 7],
+                 E = [missing, missing, 10])
+3×5 DataFrame
+ Row │ A      B        C        D        E
+     │ Int64  Missing  Int64?   Int64?   Int64?
+─────┼───────────────────────────────────────────
+   1 │     1  missing  missing        6  missing
+   2 │     2  missing        4  missing  missing
+   3 │     3  missing        5        7       10
+
+julia> BigRiverJunbi.impute_cat(df)
+3×5 DataFrame
+ Row │ A         B         C         D         E
+     │ Float64?  Float64?  Float64?  Float64?  Float64?
+─────┼──────────────────────────────────────────────────
+   1 │      1.0       0.0       0.0       1.0       0.0
+   2 │      2.0       0.0       1.0       0.0       0.0
+   3 │      2.0       0.0       2.0       2.0       2.0
+"""
+function impute_cat(df_missing::DataFrame; startCol::Int64 = 1)
+    m = Matrix{Union{Missing, Float64}}(df_missing[:, startCol:end])
+    m = impute_cat(m)
+    return DataFrame(m, Symbol.(names(df_missing)[startCol:end]))
+end
+
+"""
+    impute_cat(data::Matrix{Union{Missing, Float64}})
+
+Imputes missing elements based on a categorical imputation:
+    - 0: Missing values
+    - 1: Values below the median
+    - 2: Values equal to or above the median
+Returns a new matrix without modifying the original matrix.
+
+# Arguments
+
+`data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
+        and the columns are the features.
+"""
+impute_cat(data::Matrix{Union{Missing, Float64}}) = impute_cat!(trycopy(data))
+
+"""
+    impute_cat!(data::Matrix{Union{Missing, Float64}})
+
+Imputes missing elements based on a categorical imputation:
+    - 0: Missing values
+    - 1: Values below the median
+    - 2: Values equal to or above the median
+Modifies the original matrix in place.
+
+# Arguments
+
+`data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
+        and the columns are the features.
+"""
+function impute_cat!(data::Matrix{Union{Missing, Float64}})
+    @views for i in axes(data, 2)
+        # if there are only missing values, skip
+        if all(ismissing, data[:, i])
+            continue
+        end
+        # find indexes of non missing for each column
+        idx_not_missing = findall(.!ismissing.(data[:, i]))
+        med = median(data[idx_not_missing, i])
+        # replace values below and above the median by 1 and 2 respectively
+        replace!(data[idx_not_missing, i]) do x
+            x < med ? 1 : 2
+        end
+    end
+    # replace values with missing by 0
+    replace!(data, missing => 0)
+    return data
+end
+
+"""
     imputeKNN(
         data::AbstractMatrix{Union{Missing, Float64}},
         k::Int = 1;
