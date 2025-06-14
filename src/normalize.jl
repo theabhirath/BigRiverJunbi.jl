@@ -122,6 +122,62 @@ function quantilenorm(data::Matrix{T}) where {T <: Real}
     return results
 end
 
+"""
+    huberize(mat::Matrix{T}; alpha::Float64 = 1.0) where {T <: Real}
+
+Performs Huberization for sample intensities.
+
+# Arguments
+- `mat`: The matrix to normalize.
+- `alpha`: The alpha parameter for the Huberization. Default is 1.0.
+"""
+# TODO: add a example/doctest
+function huberize(mat::Matrix{T}; alpha::Float64 = 1.0) where {T <: Real}
+    return mapslices(mat, dims = 1) do x
+        huberize(x; alpha)
+    end
+end
+
+"""
+    huberize(x::Vector{T}; alpha::Float64 = 1.0) where {T <: Real}
+
+Performs Huberization for a single vector.
+
+# Arguments
+- `x`: The vector to Huberize.
+- `alpha`: The alpha parameter for the Huberization. Default is 1.0.
+"""
+# TODO: decide on how to handle the case where the MAD is zero
+function huberize(x::Vector{T}; alpha::Float64 = 1.0) where {T <: Real}
+    med = median(x)
+    s = mad(x; center = med, normalize = true)
+    if s == 0
+        @warn "The MAD (median absolute deviation) of the slice is zero, which implies" *
+            "that some of the data along your chosen dimension is very close to the " *
+            "median. This will return a matrix with NaN values. Please check your data."
+    end
+    z = (x .- med) ./ s
+    l = huberloss.(z; alpha)
+    x = sign.(z) .* sqrt.(2l)
+    return med .+ s .* x
+end
+
+"""
+    huberloss(x::Real; alpha::Float64 = 1.0)
+
+Computes the Huber loss for a given value. This is defined as:
+
+```math
+L(x) = \\begin{cases}
+    \\frac{1}{2}x^2 & \\text{if } |x| \\leq \\alpha \\\\
+    \\alpha (|x| - \\frac{\\alpha^2}{2}) & \\text{if } |x| > \\alpha
+\\end{cases}
+```
+
+# Arguments
+- `x`: The value to compute the Huber loss for.
+- `alpha`: The alpha parameter for the Huber loss. Default is 1.0.
+"""
 function huberloss(x::Real; alpha::Float64 = 1.0)
     @assert alpha>0 "Huber crossover parameter alpha must be positive."
     d = abs(x)
@@ -129,21 +185,5 @@ function huberloss(x::Real; alpha::Float64 = 1.0)
         return d^2 / 2
     else
         return alpha * (d - alpha^2 / 2)
-    end
-end
-
-function huberize(x::Vector{T}; alpha::Float64 = 1.0) where {T <: Real}
-    med = median(x)
-    s = mad(x; center = med, normalize = true)
-    z = (x .- med) ./ s
-    l = huberloss.(z; alpha)
-    x = sign.(z) .* sqrt.(2l)
-    return med .+ s .* x
-end
-
-# TODO: check for identical values in the column
-function huberize(mat::Matrix{T}; alpha::Float64 = 1.0) where {T <: Real}
-    return mapslices(mat, dims = 1) do x
-        huberize(x; alpha)
     end
 end
