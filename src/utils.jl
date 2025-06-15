@@ -34,7 +34,15 @@ function missing_summary(df::DataFrame)
     )
     hl_r = Highlighter((data, i, j) -> i == size(df, 1), Crayon(foreground = :red))
     hl_c = Highlighter((data, i, j) -> j == size(df, 2), Crayon(foreground = :blue))
-    return pretty_table(df, highlighters = (hl_t, hl_c, hl_r))
+    nrows = nrow(df)
+    hlines = [0, 1, nrows, nrows + 1]
+    row_labels = vcat(1:(nrows - 1), "pmissing_cols")
+    return pretty_table(
+        df,
+        row_labels = row_labels,
+        highlighters = (hl_t, hl_c, hl_r),
+        hlines = hlines
+    )
 end
 
 """
