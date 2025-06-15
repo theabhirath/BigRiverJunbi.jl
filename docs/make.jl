@@ -5,7 +5,7 @@ DocMeta.setdocmeta!(
     BigRiverJunbi,
     :DocTestSetup,
     :(using BigRiverJunbi, DataFrames);
-    recursive = true,
+    recursive = true
 )
 
 makedocs(;

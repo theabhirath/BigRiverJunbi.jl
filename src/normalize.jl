@@ -153,8 +153,8 @@ function huberize(x::Vector{T}; alpha::Float64 = 1.0) where {T <: Real}
     s = mad(x; center = med, normalize = true)
     if s == 0
         @warn "The MAD (median absolute deviation) of the slice is zero, which implies" *
-            "that some of the data along your chosen dimension is very close to the " *
-            "median. This will return a matrix with NaN values. Please check your data."
+              "that some of the data along your chosen dimension is very close to the " *
+              "median. This will return a matrix with NaN values. Please check your data."
     end
     z = (x .- med) ./ s
     l = huberloss.(z; alpha)

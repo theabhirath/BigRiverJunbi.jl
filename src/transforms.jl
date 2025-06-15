@@ -28,7 +28,7 @@ julia> BigRiverJunbi.log2_tx(mat)
 """
 function log2_tx(mat::Matrix{T}; eps::Float64 = 1.0) where {T <: Real}
     @assert all(mat .>= 0) "Matrix has negative values. Please remove negative values" *
-        " before transforming."
+                           " before transforming."
     return log2.(mat .+ eps)
 end
 
@@ -62,6 +62,6 @@ julia> BigRiverJunbi.mean_center(mat)
 """
 function mean_center(mat::Matrix{T}, dims::Int64 = 1) where {T <: Real}
     @assert all(mat .>= 0) "Matrix has negative values. Please remove negative values" *
-        " before transforming."
+                           " before transforming."
     return mat .- mean(mat; dims)
 end
