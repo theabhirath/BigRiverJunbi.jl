@@ -14,24 +14,29 @@ NearestNeighbors = "b8a86587-4115-5ab1-83bc-aa920d37bbce"
 PrettyTables = "08abe8d2-0d0c-5749-adfa-8a2ac140af0d"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
-TestItems = "1c621080-faea-4a02-84b6-bbd5e436b8fe"
 
 [compat]
+Aqua = "0.8.0"
 DataFrames = "1.7.0"
 Distributions = "0.25.120"
+Documenter = "1.12.0"
 GLM = "1.9.0"
+julia = "1.10"
 Missings = "1.2.0"
 NearestNeighbors = "0.4.21"
 PrettyTables = "2.4.0"
 Statistics = "1.11.1"
 StatsBase = "0.34.5"
+Test = "1.11.0"
+TestItemRunner = "1.1.0"
 TestItems = "1.0.0"
-julia = "1.10"
 
 [extras]
+Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 TestItemRunner = "f8b46487-2199-4994-9208-9a1283c18c0a"
+TestItems = "1c621080-faea-4a02-84b6-bbd5e436b8fe"
 
 [targets]
-test = ["Documenter", "Test", "TestItemRunner"]
+test = ["Aqua", "Documenter", "Test", "TestItemRunner"]
