@@ -46,21 +46,21 @@ all positive values.
 
 ```jldoctest
 julia> mat = [0.5 1 2 3 3.5;
-             7 3 5 1.5 3.5;
-             8 2 5 6 9]
+             7 3 5 0 3.5;
+             8 2 5 6 0]
 3×5 Matrix{Float64}:
  0.5  1.0  2.0  3.0  3.5
- 7.0  3.0  5.0  1.5  3.5
- 8.0  2.0  5.0  6.0  9.0
+ 7.0  3.0  5.0  0.0  3.5
+ 8.0  2.0  5.0  6.0  0.0
 
-julia> BigRiverJunbi.mean_center(mat)
+julia> BigRiverJunbi.meancenter_tx(mat)
 3×5 Matrix{Float64}:
- -4.66667  -1.0  -2.0  -0.5  -1.83333
-  1.83333   1.0   1.0  -2.0  -1.83333
-  2.83333   0.0   1.0   2.5   3.66667
+ -4.66667  -1.0  -2.0   0.0   1.16667
+  1.83333   1.0   1.0  -3.0   1.16667
+  2.83333   0.0   1.0   3.0  -2.33333
 ```
 """
-function mean_center(mat::Matrix{T}, dims::Int64 = 1) where {T <: Real}
+function meancenter_tx(mat::Matrix{T}, dims::Int64 = 1) where {T <: Real}
     @assert all(mat .>= 0) "Matrix has negative values. Please remove negative values" *
                            " before transforming."
     return mat .- mean(mat; dims)

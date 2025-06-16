@@ -13,18 +13,18 @@ This requires that the matrix has all positive values.
 
 ```jldoctest
 julia> mat = [0.5 1 2 3 3.5;
-             7 3 5 1.5 3.5;
-             8 2 5 6 9]
+              7 3 5 1.5 4.5;
+              8 2 7 6 9]
 3×5 Matrix{Float64}:
  0.5  1.0  2.0  3.0  3.5
- 7.0  3.0  5.0  1.5  3.5
- 8.0  2.0  5.0  6.0  9.0
+ 7.0  3.0  5.0  1.5  4.5
+ 8.0  2.0  7.0  6.0  9.0
 
 julia> BigRiverJunbi.intnorm(mat)
 3×5 Matrix{Float64}:
- 0.05      0.1        0.2       0.3    0.35
- 0.35      0.15       0.25      0.075  0.175
- 0.266667  0.0666667  0.166667  0.2    0.3
+ 0.05      0.1       0.2       0.3        0.35
+ 0.333333  0.142857  0.238095  0.0714286  0.214286
+ 0.25      0.0625    0.21875   0.1875     0.28125
 ```
 """
 function intnorm(mat::Matrix{T}; dims::Int64 = 2, lambda::Float64 = 1.0) where {T <: Real}
@@ -48,18 +48,18 @@ matrix have all positive values.
 
 ```jldoctest
 julia> mat = [0.5 1 2 3 3.5;
-             7 3 5 1.5 4;
-             8 2 5 6 9]
+              7 3 5 1.5 4.5;
+              8 2 7 6 9]
 3×5 Matrix{Float64}:
  0.5  1.0  2.0  3.0  3.5
- 7.0  3.0  5.0  1.5  4.0
- 8.0  2.0  5.0  6.0  9.0
+ 7.0  3.0  5.0  1.5  4.5
+ 8.0  2.0  7.0  6.0  9.0
 
 julia> BigRiverJunbi.pqnorm(mat)
 3×5 Matrix{Float64}:
- 0.05      0.1        0.2       0.3   0.35
- 0.28      0.12       0.2       0.06  0.16
- 0.266667  0.0666667  0.166667  0.2   0.3
+ 0.05     0.1      0.2      0.3       0.35
+ 0.30625  0.13125  0.21875  0.065625  0.196875
+ 0.25     0.0625   0.21875  0.1875    0.28125
 ```
 """
 function pqnorm(mat::Matrix{T}) where {T <: Real}
@@ -93,18 +93,18 @@ that the matrix is organized as samples x features.
 
 ```jldoctest
 julia> mat = [0.5 1 2 3 3.5;
-             7 3 5 1.5 3.5;
-             8 2 5 6 9]
+              7 3 5 1.5 4.5;
+              8 2 7 6 9]
 3×5 Matrix{Float64}:
  0.5  1.0  2.0  3.0  3.5
- 7.0  3.0  5.0  1.5  3.5
- 8.0  2.0  5.0  6.0  9.0
+ 7.0  3.0  5.0  1.5  4.5
+ 8.0  2.0  7.0  6.0  9.0
 
 julia> BigRiverJunbi.quantilenorm(mat)
 3×5 Matrix{Float64}:
- 1.7  1.7  1.7  4.1  1.7
- 4.1  6.2  4.1  1.7  1.7
- 6.2  4.1  4.1  6.2  6.2
+ 1.7  1.7  1.7  4.3  1.7
+ 4.3  6.6  4.3  1.7  4.3
+ 6.6  4.3  6.6  6.6  6.6
 ```
 """
 function quantilenorm(data::Matrix{T}) where {T <: Real}
@@ -176,6 +176,7 @@ Performs Huberization for a single vector.
 # Arguments
 - `x`: The vector to Huberize.
 - `alpha`: The alpha parameter for the Huberization. Default is 1.0.
+- `error_on_zero_mad`: Whether to throw an error if the MAD is zero. Default is `true`.
 """
 function huberize(x::Vector{T}; alpha::Float64 = 1.0,
         error_on_zero_mad::Bool = true) where {T <: Real}

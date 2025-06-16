@@ -441,6 +441,7 @@ imputation method from [Impute.jl](https://github.com/invenia/Impute.jl).
   Distances.jl. Default is `Euclidean()`. This can only be one of the
   Minkowski metrics i.e. Euclidean, Cityblock, Minkowski and Chebyshev.
 """
+# TODO: add a example/doctest
 function imputeKNN(
         data::AbstractMatrix{Union{Missing, Float64}},
         k::Int = 1;
@@ -566,6 +567,7 @@ Imputation for left-censored data" (QRILC) method.
 - `df`: dataframe with missing values.
 - `start_col`: column index to start imputing from.
 """
+# TODO: add a example/doctest
 function impute_QRILC(df::DataFrame; start_col::Int64 = 1)
     mat = Matrix{Union{Missing, Float64}}(df[:, start_col:end])
     mat = impute_QRILC(mat)

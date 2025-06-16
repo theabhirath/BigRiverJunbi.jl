@@ -12,6 +12,35 @@ last row and column highlighted.
 
 # Arguments
 - `df::DataFrame`: The dataframe to add the missing summary to.
+
+# Examples
+
+```jldoctest
+julia> df = DataFrame(A = [1, 2, 3],
+                 B = [missing, missing, missing],
+                 C = [missing, 4, 5],
+                 D = [6, missing, 7],
+                 E = [missing, missing, 10])
+3×5 DataFrame
+ Row │ A      B        C        D        E
+     │ Int64  Missing  Int64?   Int64?   Int64?
+─────┼───────────────────────────────────────────
+   1 │     1  missing  missing        6  missing
+   2 │     2  missing        4  missing  missing
+   3 │     3  missing        5        7       10
+
+julia> BigRiverJunbi.missing_summary(df)
+┌───────────────┬────────┬─────────┬─────────┬─────────┬─────────┬───────────────┐
+│               │      A │       B │       C │       D │       E │ pmissing_rows │
+│               │ String │  String │  String │  String │  String │        String │
+├───────────────┼────────┼─────────┼─────────┼─────────┼─────────┼───────────────┤
+│             1 │      1 │ missing │ missing │       6 │ missing │           0.6 │
+│             2 │      2 │ missing │       4 │ missing │ missing │           0.6 │
+│             3 │      3 │ missing │       5 │       7 │      10 │           0.2 │
+├───────────────┼────────┼─────────┼─────────┼─────────┼─────────┼───────────────┤
+│ pmissing_cols │    0.0 │     1.0 │    0.33 │    0.33 │    0.67 │          0.47 │
+└───────────────┴────────┴─────────┴─────────┴─────────┴─────────┴───────────────┘
+```
 """
 function missing_summary(df::DataFrame)
     # get the missing percentages
@@ -58,6 +87,26 @@ percentage of missing values in the dataframe.
 - `pmissing_cols::Vector{Float64}`: The percentage of missing values in each column.
 - `pmissing_rows::Vector{Float64}`: The percentage of missing values in each row.
 - `total_missing::Float64`: The total percentage of missing values in the dataframe.
+
+# Examples
+
+```jldoctest
+julia> df = DataFrame(A = [1, 2, 3],
+                 B = [missing, missing, missing],
+                 C = [missing, 4, 5],
+                 D = [6, missing, 7],
+                 E = [missing, missing, 10])
+3×5 DataFrame
+ Row │ A      B        C        D        E
+     │ Int64  Missing  Int64?   Int64?   Int64?
+─────┼───────────────────────────────────────────
+   1 │     1  missing  missing        6  missing
+   2 │     2  missing        4  missing  missing
+   3 │     3  missing        5        7       10
+
+julia> BigRiverJunbi.missing_percentages(df)
+([0.0, 1.0, 0.3333333333333333, 0.3333333333333333, 0.6666666666666666], [0.6, 0.6, 0.2], 0.4666666666666667)
+```
 """
 function missing_percentages(df::DataFrame)
     count_missing_cols = [count(ismissing, col) for col in eachcol(df)]
