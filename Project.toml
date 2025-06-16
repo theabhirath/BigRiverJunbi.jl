@@ -1,7 +1,8 @@
 name = "BigRiverJunbi"
 uuid = "6a06b223-7d19-411a-858f-7a319f02fdfd"
 authors = ["Abhirath Anand <74202102+theabhirath@users.noreply.github.com>",
-           "Greg Farage <faragegr@gmail.com>"]
+           "Greg Farage <faragegr@gmail.com>",
+           "Saunak Sen <sen@uthsc.edu>"]
 version = "0.0.1-DEV"
 
 [deps]

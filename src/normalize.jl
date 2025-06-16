@@ -177,6 +177,20 @@ L(x) = \\begin{cases}
 # Arguments
 - `x`: The value to compute the Huber loss for.
 - `alpha`: The alpha parameter for the Huber loss. Default is 1.0.
+
+# Examples
+
+```jldoctest
+julia> BigRiverJunbi.huberloss(0.5)
+0.125
+
+julia> BigRiverJunbi.huberloss(2.0)
+1.5
+
+julia> BigRiverJunbi.huberloss.([-1.0 -0.5 0.0 0.25 0.75 1.25])
+1×6 Matrix{Float64}:
+ 0.5  0.125  0.0  0.03125  0.28125  0.75
+```
 """
 function huberloss(x::Real; alpha::Float64 = 1.0)
     @assert alpha>0 "Huber crossover parameter alpha must be positive."
