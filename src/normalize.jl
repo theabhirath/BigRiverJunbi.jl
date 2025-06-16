@@ -123,23 +123,53 @@ function quantilenorm(data::Matrix{T}) where {T <: Real}
 end
 
 """
-    huberize(mat::Matrix{T}; alpha::Float64 = 1.0) where {T <: Real}
+    huberize(mat::Matrix{T}; alpha::Float64 = 1.0,
+        error_on_zero_mad::Bool = true) where {T <: Real}
 
 Performs Huberization for sample intensities.
 
 # Arguments
 - `mat`: The matrix to normalize.
-- `alpha`: The alpha parameter for the Huberization. Default is 1.0.
+- `alpha`: The alpha parameter for Huberization. Default is 1.0.
+- `error_on_zero_mad`: Whether to throw an error if the MAD is zero. Default is `true`.
+
+!!! warning
+    If you set `error_on_zero_mad` to `false`, this function will return a result with NaN
+    values if the MAD is zero. This can be useful if you are expecting this behavior and
+    want to handle it yourself, but should be used with caution.
+
+# Examples
+
+```jldoctest
+julia> mat = [0.5 1 2 3 3.5;
+              7 3 5 1.5 4.5;
+              8 2 7 6 9]
+3×5 Matrix{Float64}:
+ 0.5  1.0  2.0  3.0  3.5
+ 7.0  3.0  5.0  1.5  4.5
+ 8.0  2.0  7.0  6.0  9.0
+
+julia> BigRiverJunbi.huberize(mat)
+3×5 Matrix{Float64}:
+ 2.86772  1.0  2.0002  3.0      3.5
+ 7.0      3.0  5.0     1.5      4.5
+ 8.0      2.0  7.0     5.89787  7.83846
+```
 """
-# TODO: add a example/doctest
-function huberize(mat::Matrix{T}; alpha::Float64 = 1.0) where {T <: Real}
+function huberize(mat::Matrix{T}; alpha::Float64 = 1.0,
+        error_on_zero_mad::Bool = true) where {T <: Real}
+    # check if the MAD is zero for each column and throw an error if it is
+    # disable this check if error_on_zero_mad is false
+    error_on_zero_mad && check_mad(mat; dims = 2)
+    # apply Huberization to each column
     return mapslices(mat, dims = 1) do x
-        huberize(x; alpha)
+        huberize(x; alpha, error_on_zero_mad)
     end
 end
 
 """
-    huberize(x::Vector{T}; alpha::Float64 = 1.0) where {T <: Real}
+    huberize(x::Vector{T}; alpha::Float64 = 1.0,
+        error_on_zero_mad::Bool = true) where {T <: Real}
 
 Performs Huberization for a single vector.
 
@@ -147,15 +177,11 @@ Performs Huberization for a single vector.
 - `x`: The vector to Huberize.
 - `alpha`: The alpha parameter for the Huberization. Default is 1.0.
 """
-# TODO: decide on how to handle the case where the MAD is zero
-function huberize(x::Vector{T}; alpha::Float64 = 1.0) where {T <: Real}
+function huberize(x::Vector{T}; alpha::Float64 = 1.0,
+        error_on_zero_mad::Bool = true) where {T <: Real}
+    error_on_zero_mad && check_mad(x)
     med = median(x)
     s = mad(x; center = med, normalize = true)
-    if s == 0
-        @warn "The MAD (median absolute deviation) of the slice is zero, which implies" *
-              "that some of the data along your chosen dimension is very close to the " *
-              "median. This will return a matrix with NaN values. Please check your data."
-    end
     z = (x .- med) ./ s
     l = huberloss.(z; alpha)
     x = sign.(z) .* sqrt.(2l)
@@ -177,20 +203,6 @@ L(x) = \\begin{cases}
 # Arguments
 - `x`: The value to compute the Huber loss for.
 - `alpha`: The alpha parameter for the Huber loss. Default is 1.0.
-
-# Examples
-
-```jldoctest
-julia> BigRiverJunbi.huberloss(0.5)
-0.125
-
-julia> BigRiverJunbi.huberloss(2.0)
-1.5
-
-julia> BigRiverJunbi.huberloss.([-1.0 -0.5 0.0 0.25 0.75 1.25])
-1×6 Matrix{Float64}:
- 0.5  0.125  0.0  0.03125  0.28125  0.75
-```
 """
 function huberloss(x::Real; alpha::Float64 = 1.0)
     @assert alpha>0 "Huber crossover parameter alpha must be positive."

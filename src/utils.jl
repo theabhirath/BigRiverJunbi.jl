@@ -68,7 +68,52 @@ function missing_percentages(df::DataFrame)
     return pmissing_cols, pmissing_rows, total_missing
 end
 
-# copy is more performant than deepcopy, but use deepcopy if copy fails
+"""
+    check_mad(mat::Matrix{T}; dims::Int = 2) where {T <: Real}
+
+Checks if the MAD (median absolute deviation) is zero for each column of a matrix.
+If it is, then errors and displays the list of columns with zero MAD.
+
+# Arguments
+- `mat::Matrix{T}`: The matrix to check the MAD for.
+"""
+function check_mad(mat::Matrix{T}; dims::Int = 2) where {T <: Real}
+    error_cols = String[]
+    for i in axes(mat, dims)
+        try
+            check_mad(mat[:, i])
+        catch
+            push!(error_cols, string(i))
+        end
+    end
+    if length(error_cols) > 0
+        throw(ErrorException("The MAD (median absolute deviation) of the following " *
+                             "slices along dimension $dims: $error_cols is zero, which " *
+                             "implies that some of the data is very close to the median. " *
+                             "the data is very close to the median. Please check your " *
+                             "data."))
+    end
+end
+
+"""
+    check_mad(x::Vector{T}) where {T <: Real}
+
+Checks if the MAD (median absolute deviation) is zero for a vector. If it is, then errors.
+
+# Arguments
+- `x::Vector{T}`: The vector to check the MAD for.
+"""
+function check_mad(x::Vector{T}) where {T <: Real}
+    s = mad(x; normalize = true)
+    if s == 0
+        throw(ErrorException("The MAD (median absolute deviation) of this vector is zero, " *
+                             "which implies that some of the data is very close to the " *
+                             "median. Please check your data."))
+    end
+end
+
+# utility function to copy data – copy is more performant than deepcopy
+# but use deepcopy if copy fails
 function trycopy(data)
     try
         copy(data)
