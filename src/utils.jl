@@ -8,10 +8,11 @@ last row and column highlighted.
 !!! warning
     This function will not preserve the type of the dataframe, as it converts everything
     to a string for the pretty table. It is primarily used for quick visualizations. For
-    getting the actual missing percentages, use the `missing_percentages` function instead.
+    getting the actual missing percentages, use the [`missing_percentages`](@ref) function
+    instead.
 
 # Arguments
-- `df::DataFrame`: The dataframe to add the missing summary to.
+- `df`: The dataframe to add the missing summary to.
 
 # Examples
 
@@ -81,12 +82,12 @@ Returns the percentage of missing values in each column and row, as well as the 
 percentage of missing values in the dataframe.
 
 # Arguments
-- `df::DataFrame`: The dataframe to calculate the missing percentages for.
+- `df`: The dataframe to calculate the missing percentages for.
 
 # Returns
-- `pmissing_cols::Vector{Float64}`: The percentage of missing values in each column.
-- `pmissing_rows::Vector{Float64}`: The percentage of missing values in each row.
-- `total_missing::Float64`: The total percentage of missing values in the dataframe.
+- `pmissing_cols`: A `Vector` of the percentage of missing values in each column.
+- `pmissing_rows`: A `Vector` of the percentage of missing values in each row.
+- `total_missing`: The total percentage of missing values in the dataframe.
 
 # Examples
 
