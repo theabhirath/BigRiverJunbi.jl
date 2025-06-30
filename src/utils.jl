@@ -118,15 +118,15 @@ function missing_percentages(df::DataFrame)
 end
 
 """
-    check_mad(mat::Matrix{T}; dims::Int = 2) where {T <: Real}
+    check_mad(mat::Matrix{<:Real}; dims::Int = 2)
 
 Checks if the MAD (median absolute deviation) is zero for each column of a matrix.
 If it is, then errors and displays the list of columns with zero MAD.
 
 # Arguments
-- `mat::Matrix{T}`: The matrix to check the MAD for.
+- `mat`: The matrix to check the MAD for.
 """
-function check_mad(mat::Matrix{T}; dims::Int = 2) where {T <: Real}
+function check_mad(mat::Matrix{<:Real}; dims::Int = 2)
     error_cols = String[]
     for i in axes(mat, dims)
         try
@@ -145,14 +145,14 @@ function check_mad(mat::Matrix{T}; dims::Int = 2) where {T <: Real}
 end
 
 """
-    check_mad(x::Vector{T}) where {T <: Real}
+    check_mad(x::Vector{<:Real})
 
 Checks if the MAD (median absolute deviation) is zero for a vector. If it is, then errors.
 
 # Arguments
-- `x::Vector{T}`: The vector to check the MAD for.
+- `x`: The vector to check the MAD for.
 """
-function check_mad(x::Vector{T}) where {T <: Real}
+function check_mad(x::Vector{<:Real})
     s = mad(x; normalize = true)
     if s == 0
         throw(ErrorException("The MAD (median absolute deviation) of this vector is zero, " *
