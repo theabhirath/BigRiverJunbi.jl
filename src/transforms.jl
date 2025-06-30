@@ -62,8 +62,4 @@ julia> BigRiverJunbi.meancenter_tx(mat)
   2.83333   0.0   1.0   3.0  -2.33333
 ```
 """
-function meancenter_tx(mat::Matrix{T}, dims::Int64 = 1) where {T <: Real}
-    @assert all(mat .>= 0) "Matrix has negative values. Please remove negative values" *
-                           " before transforming."
-    return mat .- mean(mat; dims)
-end
+meancenter_tx(mat::Matrix{<:Real}, dims::Int64 = 1) = mat .- mean(mat; dims)
