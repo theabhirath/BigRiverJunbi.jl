@@ -1,6 +1,6 @@
 """
     substitute(
-        data::AbstractArray{Union{Missing, Float64}},
+        data::AbstractArray{<:Union{Missing, Real}},
         statistic::Function;
         dims::Union{Nothing, Int} = nothing
     )
@@ -12,36 +12,38 @@ specified dimension and returns a new array without modifying the original array
 
 - `data`: array of values. One example: matrix of metabolomics data, where the rows are
   the features and the columns are the samples.
-- `statistic`: function that calculates the value to substitute the missing values.
+- `statistic`: function that calculates the value to substitute the missing values. The
+  function must return a value of the same type as the data.
 - `dims`: dimension along which the statistic is calculated.
 """
 function substitute(
-        data::AbstractArray{Union{Missing, Float64}},
+        data::AbstractArray{<:Union{Missing, Real}},
         statistic::Function;
         dims::Union{Nothing, Int} = nothing
 )
-    substitute!(trycopy(data), statistic; dims)
+    return substitute!(trycopy(data), statistic; dims)
 end
 
 """
     substitute!(
-        data::AbstractArray{Union{Missing, Float64}},
+        data::AbstractArray{<:Union{Missing, Real}},
         statistic::Function;
         dims::Union{Nothing, Int} = nothing
     )
 
 Substitutes missing values with the value calculated by the statistic function along the
-specified dimension and modifies the original array in place.
+specified dimension and writes the result back to the original array.
 
 # Arguments
 
 - `data`: array of values. One example: matrix of metabolomics data, where the rows are the
   features and the columns are the samples.
-- `statistic`: function that calculates the value to substitute the missing values.
+- `statistic`: function that calculates the value to substitute the missing values. The
+  function must return a value of the same type as the data.
 - `dims`: dimension along which the statistic is calculated.
 """
 function substitute!(
-        data::AbstractArray{Union{Missing, Float64}},
+        data::AbstractArray{<:Union{Missing, Real}},
         statistic::Function;
         dims::Union{Nothing, Int} = nothing
 )
@@ -56,13 +58,24 @@ function substitute!(
     return data
 end
 
-function _substitute!(data::AbstractArray{Union{Missing, Float64}}, statistic::Function)
+function _substitute!(data::AbstractArray{<:Union{Missing, Real}}, statistic::Function)
     # get the mask of the non-missing values
     mask = .!ismissing.(data)
     # substitute the missing values with the value calculated by the statistic
     if any(mask)
         x = statistic(disallowmissing(data[mask]))
-        replace!(data, missing => x)
+        try
+            replace!(data, missing => x)
+        catch
+            error(
+                "Failed to replace missing values with the value calculated by " *
+                "the statistic. This usually happens when the type returned by " *
+                "the statistic function is not the same as the type of the data. " *
+                "Please check your statistic function or promote the type of the " *
+                "data to the type returned by the statistic function and try again."
+            )
+        end
+        return data
     else
         error(
             "All values in the input slice are missing. This usually happens when " *
@@ -101,22 +114,21 @@ julia> df = DataFrame(A = [1, 2, 3],
 
 julia> BigRiverJunbi.impute_zero(df)
 3×5 DataFrame
- Row │ A         B         C         D         E
-     │ Float64?  Float64?  Float64?  Float64?  Float64?
-─────┼──────────────────────────────────────────────────
-   1 │      1.0       0.0       0.0       6.0       0.0
-   2 │      2.0       0.0       4.0       0.0       0.0
-   3 │      3.0       0.0       5.0       7.0      10.0
+ Row │ A       B       C       D       E      
+     │ Int64?  Int64?  Int64?  Int64?  Int64? 
+─────┼────────────────────────────────────────
+   1 │      1       0       0       6       0
+   2 │      2       0       4       0       0
+   3 │      3       0       5       7      10
 ```
 """
 function impute_zero(df::DataFrame; start_col::Int64 = 1)
-    m = Matrix{Union{Missing, Float64}}(df[:, start_col:end])
-    m = impute_zero(m)
-    return DataFrame(m, Symbol.(names(df)[start_col:end]))
+    m = Matrix(df[:, start_col:end])
+    return DataFrame(impute_zero!(m), Symbol.(names(df)[start_col:end]))
 end
 
 """
-    impute_zero(data::Matrix{Union{Missing, Float64}})
+    impute_zero(data::Matrix{<:Union{Missing, Real}})
 
 Returns a matrix with missing elements replaced with zero without modifying the original
 matrix.
@@ -126,19 +138,19 @@ matrix.
 - `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
         and the columns are the features.
 """
-impute_zero(data::Matrix{Union{Missing, Float64}}) = impute_zero!(trycopy(data))
+impute_zero(data::Matrix{<:Union{Missing, Real}}) = impute_zero!(trycopy(data))
 
 """
-    impute_zero!(data::Matrix{Union{Missing, Float64}})
+    impute_zero!(data::Matrix{<:Union{Missing, Real}})
 
-Modifies the original matrix in place to replace missing elements with zero.
+Replace missing elements with zero and writes the result back to the original matrix.
 
 # Arguments
 
 - `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
   and the columns are the features.
 """
-impute_zero!(data::Matrix{Union{Missing, Float64}}) = substitute!(data, x -> 0; dims = 1)
+impute_zero!(data::Matrix{<:Union{Missing, Real}}) = substitute!(data, x -> 0; dims = 1)
 
 """
     impute_min(df::DataFrame; start_col::Int64 = 1)
@@ -169,21 +181,20 @@ julia> df = DataFrame(A = [1, 2, 3],
 
 julia> BigRiverJunbi.impute_min(df)
 3×5 DataFrame
- Row │ A         B         C         D         E
-     │ Float64?  Float64?  Float64?  Float64?  Float64? 
-─────┼──────────────────────────────────────────────────
-   1 │      1.0       1.0       1.0       6.0       1.0
-   2 │      2.0       2.0       4.0       2.0       2.0
-   3 │      3.0       3.0       5.0       7.0      10.0
+ Row │ A       B       C       D       E      
+     │ Int64?  Int64?  Int64?  Int64?  Int64? 
+─────┼────────────────────────────────────────
+   1 │      1       1       1       6       1
+   2 │      2       2       4       2       2
+   3 │      3       3       5       7      10
 ```
 """
 function impute_min(df::DataFrame; start_col::Int64 = 1)
-    m = Matrix{Union{Missing, Float64}}(df[:, start_col:end])
-    m = impute_min(m)
-    return DataFrame(m, Symbol.(names(df)[start_col:end]))
+    m = Matrix(df[:, start_col:end])
+    return DataFrame(impute_min!(m), Symbol.(names(df)[start_col:end]))
 end
-impute_min(data::Matrix{Union{Missing, Float64}}) = impute_min!(trycopy(data))
-impute_min!(data::Matrix{Union{Missing, Float64}}) = substitute!(data, minimum; dims = 1)
+impute_min(data::Matrix{<:Union{Missing, Real}}) = impute_min!(trycopy(data))
+impute_min!(data::Matrix{<:Union{Missing, Real}}) = substitute!(data, minimum; dims = 1)
 
 """
     impute_min_prob(df::DataFrame; start_col::Int64 = 1, q = 0.01; tune_sigma = 1)
@@ -205,8 +216,7 @@ the median value of the population of line-wise standard deviations.
 """
 function impute_min_prob(df::DataFrame; start_col::Int64 = 1, q = 0.01, tune_sigma = 1)
     m = Matrix{Union{Missing, Float64}}(df[:, start_col:end])
-    m = impute_min_prob(m, q; tune_sigma)
-    return DataFrame(m, Symbol.(names(df)[start_col:end]))
+    return DataFrame(impute_min_prob!(m, q; tune_sigma), Symbol.(names(df)[start_col:end]))
 end
 
 """
@@ -229,7 +239,7 @@ original matrix.
                Default is 1.0.
 """
 function impute_min_prob(data::Matrix{Union{Missing, Float64}}, q = 0.01; tune_sigma = 1)
-    impute_min_prob!(trycopy(data), q; tune_sigma)
+    return impute_min_prob!(trycopy(data), q; tune_sigma)
 end
 
 """
@@ -237,7 +247,7 @@ end
 
 Replaces missing values with random draws from a gaussian distribution centered in the
 minimum value observed and with standard deviation equal to the median value of the
-population of line-wise standard deviations. Modifies the original matrix in place.
+population of line-wise standard deviations. Writes the result back to the original matrix.
 
 # Arguments
 
@@ -305,22 +315,28 @@ julia> df = DataFrame(A = [1, 2, 3],
 
 julia> BigRiverJunbi.impute_half_min(df)
 3×5 DataFrame
- Row │ A         B         C         D         E
-     │ Float64?  Float64?  Float64?  Float64?  Float64?
-─────┼──────────────────────────────────────────────────
-   1 │      1.0       0.5       0.5       6.0       0.5
-   2 │      2.0       1.0       4.0       1.0       1.0
-   3 │      3.0       1.5       5.0       7.0      10.0
+ Row │ A       B       C       D       E      
+     │ Int64?  Int64?  Int64?  Int64?  Int64? 
+─────┼────────────────────────────────────────
+   1 │      1       0       0       6       0
+   2 │      2       1       4       1       1
+   3 │      3       1       5       7      10
 ```
 """
 function impute_half_min(df::DataFrame; start_col::Int64 = 1)
-    m = Matrix{Union{Missing, Float64}}(df[:, start_col:end])
-    m = impute_half_min(m)
-    return DataFrame(m, Symbol.(names(df)[start_col:end]))
+    m = Matrix(df[:, start_col:end])
+    return DataFrame(impute_half_min!(m), Symbol.(names(df)[start_col:end]))
 end
 
-function impute_half_min(m::Matrix{Union{Missing, Float64}})
-    substitute(m, x -> minimum(x) / 2; dims = 1)
+impute_half_min(m::Matrix{<:Union{Missing, Integer}}) = impute_half_min!(trycopy(m))
+impute_half_min(m::Matrix{<:Union{Missing, Real}}) = impute_half_min!(trycopy(m))
+
+function impute_half_min!(m::Matrix{<:Union{Missing, Integer}})
+    return substitute!(m, x -> minimum(x) ÷ 2; dims = 1)
+end
+
+function impute_half_min!(m::Matrix{<:Union{Missing, Real}})
+    return substitute!(m, x -> minimum(x) / 2; dims = 1)
 end
 
 """
@@ -352,24 +368,23 @@ julia> df = DataFrame(A = [1, 2, 3],
    2 │     2  missing        4  missing  missing
    3 │     3  missing        5        7       10
 
-julia> BigRiverJunbi.impute_cat(df)
+julia> BigRiverJunbi.impute_median_cat(df)
 3×5 DataFrame
- Row │ A         B         C         D         E
-     │ Float64?  Float64?  Float64?  Float64?  Float64?
-─────┼──────────────────────────────────────────────────
-   1 │      1.0       0.0       0.0       1.0       0.0
-   2 │      2.0       0.0       1.0       0.0       0.0
-   3 │      2.0       0.0       2.0       2.0       2.0
+ Row │ A       B       C       D       E      
+     │ Int64?  Int64?  Int64?  Int64?  Int64? 
+─────┼────────────────────────────────────────
+   1 │      1       0       0       1       0
+   2 │      2       0       1       0       0
+   3 │      2       0       2       2       2
 ```
 """
-function impute_cat(df_missing::DataFrame; start_col::Int64 = 1)
-    m = Matrix{Union{Missing, Float64}}(df_missing[:, start_col:end])
-    m = impute_cat(m)
-    return DataFrame(m, Symbol.(names(df_missing)[start_col:end]))
+function impute_median_cat(df_missing::DataFrame; start_col::Int64 = 1)
+    m = Matrix(df_missing[:, start_col:end])
+    return DataFrame(impute_median_cat!(m), Symbol.(names(df_missing)[start_col:end]))
 end
 
 """
-    impute_cat(data::Matrix{Union{Missing, Float64}})
+    impute_median_cat(data::Matrix{<:Union{Missing, Real}})
 
 Imputes missing elements based on a categorical imputation:
     - 0: Missing values
@@ -382,23 +397,25 @@ Returns a new matrix without modifying the original matrix.
 - `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
   and the columns are the features.
 """
-impute_cat(data::Matrix{Union{Missing, Float64}}) = impute_cat!(trycopy(data))
+function impute_median_cat(data::Matrix{<:Union{Missing, Real}})
+    return impute_median_cat!(trycopy(data))
+end
 
 """
-    impute_cat!(data::Matrix{Union{Missing, Float64}})
+    impute_median_cat!(data::Matrix{<:Union{Missing, Real}})
 
 Imputes missing elements based on a categorical imputation:
     - 0: Missing values
     - 1: Values below the median
     - 2: Values equal to or above the median
-Modifies the original matrix in place.
+Writes the result back to the original matrix.
 
 # Arguments
 
 - `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
   and the columns are the features.
 """
-function impute_cat!(data::Matrix{Union{Missing, Float64}})
+function impute_median_cat!(data::Matrix{<:Union{Missing, Real}})
     @views for i in axes(data, 2)
         # if there are only missing values, skip
         if all(ismissing, data[:, i])
@@ -426,7 +443,8 @@ Replaces missing elements based on k-nearest neighbors (KNN) imputation.
 
 - `df`: dataframe with missing values.
 - `k`: number of nearest neighbors to use for imputation.
-- `threshold`: threshold for the number of missing neighbors.
+- `threshold`: threshold for the number of missing neighbors above which the imputation is
+  skipped.
 """
 function imputeKNN(
         df::DataFrame;
@@ -446,8 +464,8 @@ end
         k::Int = 1;
         threshold::Float64 = 0.5,
         dims::Union{Nothing, Int} = nothing,
-        distance::M = Euclidean()
-    ) where {M <: NearestNeighbors.MinkowskiMetric}
+        distance::NearestNeighbors.MinkowskiMetric = Euclidean()
+    )
 
 Replaces missing elements based on k-nearest neighbors (KNN). Returns a new matrix
 without modifying the original matrix. This method is almost an exact copy of the KNN
@@ -458,7 +476,8 @@ imputation method from [Impute.jl](https://github.com/invenia/Impute.jl).
 - `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
   and the columns are the features.
 - `k`: number of nearest neighbors to use for imputation.
-- `threshold`: threshold for the number of missing neighbors.
+- `threshold`: threshold for the number of missing neighbors above which the imputation is
+  skipped.
 - `dims`: dimension along which the statistic is calculated.
 - `distance`: distance metric to use for the nearest neighbors search, taken from
   Distances.jl. Default is `Euclidean()`. This can only be one of the
@@ -470,8 +489,8 @@ function imputeKNN(
         k::Int = 1;
         threshold::Float64 = 0.5,
         dims::Union{Nothing, Int} = nothing,
-        distance::M = Euclidean()
-) where {M <: NearestNeighbors.MinkowskiMetric}
+        distance::NearestNeighbors.MinkowskiMetric = Euclidean()
+)
     # check arguments
     k < 1 &&
         throw(ArgumentError("The number of nearset neighbors should be greater than 0"))
@@ -487,11 +506,11 @@ end
         k::Int,
         threshold::Float64,
         dims::Union{Nothing, Int},
-        distance::M
-    ) where {M <: NearestNeighbors.MinkowskiMetric}
+        distance::NearestNeighbors.MinkowskiMetric
+    )
 
-Replaces missing elements based on k-nearest neighbors (KNN) imputation. Modifies the
-original matrix in place. This method is almost an exact copy of the KNN imputation
+Replaces missing elements based on k-nearest neighbors (KNN) imputation. Writes the result
+back to the original matrix. This method is almost an exact copy of the KNN imputation
 method from [Impute.jl](https://github.com/invenia/Impute.jl).
 
 # Arguments
@@ -499,7 +518,8 @@ method from [Impute.jl](https://github.com/invenia/Impute.jl).
 - `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
   and the columns are the features.
 - `k`: number of nearest neighbors to use for imputation.
-- `threshold`: threshold for the number of missing neighbors.
+- `threshold`: threshold for the number of missing neighbors above which the imputation is
+  skipped.
 - `dims`: dimension along which the statistic is calculated.
 - `distance`: distance metric to use for the nearest neighbors search, taken from
   Distances.jl. Default is `Euclidean()`. This can only be one of the
@@ -510,8 +530,8 @@ function imputeKNN!(
         k::Int,
         threshold::Float64,
         dims::Union{Nothing, Int},
-        distance::M
-) where {M <: NearestNeighbors.MinkowskiMetric}
+        distance::NearestNeighbors.MinkowskiMetric
+)
     # KDTree wants dims x nrows, so we transpose the data
     X = dims == 1 ? data : transpose(data)
     # get mask array
@@ -644,8 +664,7 @@ Imputation for left-censored data" (QRILC) method.
 # TODO: add a example/doctest
 function impute_QRILC(df::DataFrame; start_col::Int64 = 1)
     mat = Matrix{Union{Missing, Float64}}(df[:, start_col:end])
-    mat = impute_QRILC(mat)
-    return DataFrame(mat, Symbol.(names(df)[start_col:end]))
+    return DataFrame(impute_QRILC!(mat), Symbol.(names(df)[start_col:end]))
 end
 
 """
@@ -657,14 +676,14 @@ end
 
 Returns imputated matrix based on the "Quantile regression Imputation for left-censored
 data" (QRILC) method. The function is based on the function `impute.QRILC` from the
-`imputeLCMD.R` package, with one difference: the default value of `eps` is set to 0.005
+`imputeLCMD` R package, with one difference: the default value of `eps` is set to 0.005
 instead of 0.001.
 
 # Arguments
 
 - `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
   and the columns are the features.
-- `tune_sigma`: coefficient that controls the sd of the MNAR distribution:
+- `tune_sigma`: coefficient that controls the SD of the MNAR distribution:
                 - 1 if the complete data distribution is supposed to be gaussian.
                 - 0 < tune_sigma < 1 if the complete data distribution is supposed to be
                   left-censored.
@@ -676,7 +695,7 @@ function impute_QRILC(
         tune_sigma::Float64 = 1.0,
         eps::Float64 = 0.005
 )
-    impute_QRILC!(trycopy(data); tune_sigma, eps)
+    return impute_QRILC!(trycopy(data); tune_sigma, eps)
 end
 
 """
@@ -687,15 +706,15 @@ end
     )
 
 Imputes missing elements based on the "Quantile regression Imputation for left-censored
-data" (QRILC) method. Modifies the original matrix in place. The function is based on
-the function `impute.QRILC` from the `imputeLCMD.R` package, with one difference: the
+data" (QRILC) method. Writes the result back to the original matrix. The function is based on
+the function `impute.QRILC` from the `imputeLCMD` R package, with one difference: the
 default value of `eps` is set to 0.005 instead of 0.001.
 
 # Arguments
 
 - `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
   and the columns are the features.
-- `tune_sigma`: coefficient that controls the sd of the MNAR distribution:
+- `tune_sigma`: coefficient that controls the SD of the MNAR distribution:
                 - 1 if the complete data distribution is supposed to be gaussian.
                 - 0 < tune_sigma < 1 if the complete data distribution is supposed to be
                   left-censored.
