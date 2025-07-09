@@ -1,5 +1,6 @@
 using BigRiverJunbi
 using Documenter
+using DocumenterVitepress
 
 DocMeta.setdocmeta!(
     BigRiverJunbi,
@@ -12,16 +13,16 @@ makedocs(;
     modules = [BigRiverJunbi],
     authors = "Abhirath Anand <74202102+theabhirath@users.noreply.github.com> and contributors",
     sitename = "BigRiverJunbi.jl",
-    format = Documenter.HTML(;
-        canonical = "https://senresearch.github.io/BigRiverJunbi.jl",
-        edit_link = "main",
-        assets = String[]
+    format = DocumenterVitepress.MarkdownVitepress(
+        repo = "https://github.com/senresearch/BigRiverJunbi.jl",
     ),
-    pages = ["Home" => "index.md"]
+    pages = ["Home" => "index.md", "API" => "api.md"]
 )
 
-deploydocs(;
+DocumenterVitepress.deploydocs(;
     repo = "github.com/senresearch/BigRiverJunbi.jl",
+    target = "build",
     devbranch = "main",
-    devurl = "stable"
+    branch = "gh-pages",
+    push_preview = true,
 )
