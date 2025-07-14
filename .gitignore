@@ -25,3 +25,5 @@ Manifest*.toml
 
 # DocumenterVitepress installs node modules to render the documentation locally
 */node_modules/*
+*/package.json
+*/package-lock.json

@@ -24,5 +24,5 @@ DocumenterVitepress.deploydocs(;
     target = "build",
     devbranch = "main",
     branch = "gh-pages",
-    push_preview = true,
+    push_preview = true
 )

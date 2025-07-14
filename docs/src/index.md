@@ -5,8 +5,7 @@ layout: home
 
 hero:
   name: "BigRiverJunbi.jl"
-  text: "'Omics data preparation in Julia."
-  tagline: Statistical Tools for Data Preprocessing (Imputation, Normalization, Transformation) and Exploratory Analysis.
+  tagline: Statistical Tools for Data Preprocessing (Imputation, Normalization, Transformation) and Exploratory Analysis for 'omics data in Julia
   actions:
     - theme: brand
       text: Get Started
