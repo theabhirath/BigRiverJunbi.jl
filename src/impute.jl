@@ -125,7 +125,8 @@ julia> BigRiverJunbi.impute_zero(df)
 """
 function impute_zero(df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2))
     m = Matrix(df[:, start_col:end_col])
-    return DataFrame(impute_zero!(m), Symbol.(names(df)[start_col:end_col]))
+    transformed = DataFrame(impute_zero!(m), Symbol.(names(df)[start_col:end_col]))
+    return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
 end
 
 """
@@ -193,8 +194,10 @@ julia> BigRiverJunbi.impute_min(df)
 """
 function impute_min(df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2))
     m = Matrix(df[:, start_col:end_col])
-    return DataFrame(impute_min!(m), Symbol.(names(df)[start_col:end_col]))
+    transformed = DataFrame(impute_min!(m), Symbol.(names(df)[start_col:end_col]))
+    return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
 end
+
 impute_min(data::Matrix{<:Union{Missing, Real}}) = impute_min!(trycopy(data))
 impute_min!(data::Matrix{<:Union{Missing, Real}}) = substitute!(data, minimum; dims = 1)
 
@@ -219,8 +222,10 @@ the median value of the population of line-wise standard deviations.
 """
 function impute_min_prob(
         df::DataFrame; q = 0.01, tune_sigma = 1, start_col::Int64 = 1, end_col::Int64 = size(df, 2))
-    m = Matrix{Union{Missing, Float64}}(df[:, start_col:end_col])
-    return DataFrame(impute_min_prob!(m, q; tune_sigma), Symbol.(names(df)[start_col:end_col]))
+    m = convert(Matrix{Union{Missing, Float64}}, df[:, start_col:end_col])
+    transformed = DataFrame(
+        impute_min_prob!(m, q; tune_sigma), Symbol.(names(df)[start_col:end_col]))
+    return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
 end
 
 """
@@ -333,7 +338,8 @@ julia> BigRiverJunbi.impute_half_min(df)
 """
 function impute_half_min(df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2))
     m = Matrix(df[:, start_col:end_col])
-    return DataFrame(impute_half_min!(m), Symbol.(names(df)[start_col:end_col]))
+    transformed = DataFrame(impute_half_min!(m), Symbol.(names(df)[start_col:end_col]))
+    return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
 end
 
 impute_half_min(m::Matrix{<:Union{Missing, Integer}}) = impute_half_min!(trycopy(m))
@@ -390,7 +396,8 @@ julia> BigRiverJunbi.impute_median_cat(df)
 function impute_median_cat(
         df_missing::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df_missing, 2))
     m = Matrix(df_missing[:, start_col:end_col])
-    return DataFrame(impute_median_cat!(m), Symbol.(names(df_missing)[start_col:end_col]))
+    transformed = DataFrame(impute_median_cat!(m), Symbol.(names(df_missing)[start_col:end_col]))
+    return hcat(df_missing[:, 1:(start_col - 1)], transformed, df_missing[:, (end_col + 1):end])
 end
 
 """
@@ -466,10 +473,11 @@ function imputeKNN(
         end_col::Int64 = size(df, 2)
 )
     # TODO: add a example/doctest
-    mat = Matrix(df[:, start_col:end_col])
-    return DataFrame(
+    mat = convert(Matrix{Union{Missing, Float64}}, df[:, start_col:end_col])
+    transformed = DataFrame(
         imputeKNN(mat, k; threshold, dims = 1), Symbol.(names(df)[start_col:end_col])
     )
+    return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
 end
 
 """
@@ -604,13 +612,14 @@ Imputation for left-censored data" (QRILC) method.
 """
 # TODO: add a example/doctest
 function impute_QRILC(df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2))
-    mat = Matrix{Union{Missing, Float64}}(df[:, start_col:end_col])
-    return DataFrame(impute_QRILC!(mat), Symbol.(names(df)[start_col:end_col]))
+    mat = convert(Matrix{Union{Missing, Float64}}, df[:, start_col:end_col])
+    transformed = DataFrame(impute_QRILC!(mat), Symbol.(names(df)[start_col:end_col]))
+    return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
 end
 
 """
     impute_QRILC(
-        data::Matrix{Union{Missing, Float64}};
+        data::Matrix{<:Union{Missing, Real}};
         tune_sigma::Float64 = 1.0,
         eps::Float64 = 0.005
     )
@@ -632,7 +641,7 @@ instead of 0.001.
 - `eps`: small value added to the quantile for stability.
 """
 function impute_QRILC(
-        data::Matrix{<:Union{Missing, Float64}};
+        data::Matrix{<:Union{Missing, Real}};
         tune_sigma = 1.0,
         eps = 0.005
 )
@@ -698,8 +707,9 @@ end
 
 ### TODO: add docstrings for the SVD imputation methods
 function imputeSVD(df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2))
-    mat = Matrix(df[:, start_col:end_col])
-    return DataFrame(imputeSVD(mat), Symbol.(names(df)[start_col:end_col]))
+    mat = convert(Matrix{Union{Missing, Float64}}, df[:, start_col:end_col])
+    transformed = DataFrame(imputeSVD(mat), Symbol.(names(df)[start_col:end_col]))
+    return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
 end
 
 function imputeSVD(

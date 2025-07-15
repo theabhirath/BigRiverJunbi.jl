@@ -1,5 +1,5 @@
 """
-    intnorm(mat::Matrix{<:Real}; dims::Int64 = 2, lambda::Float64 = 1.0)
+    intnorm(mat::Matrix{<:Real}; dims::Int64 = 2, lambda::Real = 1)
 
 Total Area Normalization for each row or column. By default, it normalizes each row.
 This requires that the matrix has all positive values.
@@ -7,7 +7,7 @@ This requires that the matrix has all positive values.
 # Arguments
 - `mat`: The matrix to normalize.
 - `dims`: The dimension to normalize across. Default is 2.
-- `lambda`: The lambda parameter for the normalization. Default is 1.0.
+- `lambda`: The lambda parameter for the normalization. Default is 1.
 
 # Examples
 
@@ -27,15 +27,35 @@ julia> BigRiverJunbi.intnorm(mat)
  0.25      0.0625    0.21875   0.1875     0.28125
 ```
 """
-function intnorm(mat::Matrix{<:Real}; dims::Int64 = 2, lambda::Float64 = 1.0)
+function intnorm(mat::Matrix{<:Real}; dims::Int64 = 2, lambda::Real = 1)
     # if matrix has any negative values, throw an error
     @assert all(mat .>= 0) "Matrix has negative values. Please remove negative values" *
                            " before normalizing."
-    return mat ./ (lambda .* sum(mat; dims = dims))
+    return mat ./ (sum(mat; dims = dims) ./ lambda)
 end
 
 """
-    pqnorm(mat::Matrix{<:Real})
+    intnorm(df::DataFrame; lambda::Float64 = 1.0,
+            start_col::Int64 = 1, end_col::Int64 = size(df, 2))
+
+Total Area Normalization for each row or column. By default, it normalizes each row.
+This requires that the matrix has all positive values.
+
+# Arguments
+- `df`: The dataframe to normalize.
+- `lambda`: The lambda parameter for the normalization. Default is 1.
+- `start_col`: The column to start normalizing from. Default is 1.
+- `end_col`: The column to end normalizing at. Default is the last column.
+"""
+function intnorm(df::DataFrame; lambda::Real = 1,
+        start_col::Int64 = 1, end_col::Int64 = size(df, 2))
+    transformed = DataFrame(intnorm(Matrix(df[:, start_col:end_col]); lambda),
+        Symbol.(names(df)[start_col:end_col]))
+    return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
+end
+
+"""
+    pqnorm(mat::Matrix{<:Real}; lambda::Real = 1)
 
 Performs a probabilistic quotient normalization (PQN) for sample intensities.
 This assumes that the matrix is organized as samples x features and requires that the
@@ -62,12 +82,12 @@ julia> BigRiverJunbi.pqnorm(mat)
  0.25     0.0625   0.21875  0.1875    0.28125
 ```
 """
-function pqnorm(mat::Matrix{<:Real})
+function pqnorm(mat::Matrix{<:Real}; lambda::Real = 1)
     # if matrix has any negative values, throw an error
     @assert all(mat .>= 0) "Matrix has negative values. Please remove negative values" *
                            " before normalizing."
     # Integral normalization
-    mat = intnorm(mat; dims = 2)
+    mat = intnorm(mat; dims = 2, lambda)
     # Calculate the reference spectrum (default: median) of all samples
     ref_spec = median(mat; dims = 1)
     # Calculate the quotients of all variables of interest of the test spectrum
@@ -78,6 +98,27 @@ function pqnorm(mat::Matrix{<:Real})
     # Divide all variables of the test spectrum by this median
     mat_norm = mat ./ med_quotients
     return mat_norm
+end
+
+"""
+    pqnorm(df::DataFrame; lambda::Real = 1,
+           start_col::Int64 = 1, end_col::Int64 = size(df, 2))
+
+Performs a probabilistic quotient normalization (PQN) for sample intensities.
+This assumes that the matrix is organized as samples x features and requires that the
+matrix have all positive values.
+
+# Arguments
+- `df`: The dataframe to normalize.
+- `lambda`: The lambda parameter for the normalization. Default is 1.
+- `start_col`: The column to start normalizing from. Default is 1.
+- `end_col`: The column to end normalizing at. Default is the last column.
+"""
+function pqnorm(df::DataFrame; lambda::Real = 1,
+        start_col::Int64 = 1, end_col::Int64 = size(df, 2))
+    transformed = DataFrame(pqnorm(Matrix(df[:, start_col:end_col]); lambda),
+        Symbol.(names(df)[start_col:end_col]))
+    return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
 end
 
 """
@@ -123,8 +164,25 @@ function quantilenorm(data::Matrix{<:Real})
 end
 
 """
+    quantilenorm(df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2))
+
+Performs quantile normalization for sample intensities. This assumes
+that the matrix is organized as samples x features.
+
+# Arguments
+- `df`: The dataframe to normalize.
+- `start_col`: The column to start normalizing from. Default is 1.
+- `end_col`: The column to end normalizing at. Default is the last column.
+"""
+function quantilenorm(df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2))
+    transformed = DataFrame(quantilenorm(Matrix(df[:, start_col:end_col])),
+        Symbol.(names(df)[start_col:end_col]))
+    return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
+end
+
+"""
     huberize(
-        mat::Matrix{<:Real}; alpha::Float64 = 1.0,
+        mat::Matrix{<:Real}; alpha::Real = 1,
         error_on_zero_mad::Bool = true
     )
 
@@ -132,7 +190,7 @@ Performs Huberization for sample intensities.
 
 # Arguments
 - `mat`: The matrix to normalize.
-- `alpha`: The alpha parameter for Huberization. Default is 1.0.
+- `alpha`: The alpha parameter for Huberization. Default is 1.
 - `error_on_zero_mad`: Whether to throw an error if the MAD is zero. Default is `true`.
 
 !!! warning
@@ -159,7 +217,7 @@ julia> BigRiverJunbi.huberize(mat)
 ```
 """
 function huberize(
-        mat::Matrix{<:Real}; alpha::Float64 = 1.0,
+        mat::Matrix{<:Real}; alpha::Real = 1,
         error_on_zero_mad::Bool = true
 )
     # check if the MAD is zero for each column and throw an error if it is
@@ -172,8 +230,35 @@ function huberize(
 end
 
 """
+    huberize(df::DataFrame; alpha::Real = 1,
+             error_on_zero_mad::Bool = true,
+             start_col::Int64 = 1, end_col::Int64 = size(df, 2))
+
+Performs Huberization for sample intensities.
+
+# Arguments
+- `df`: The dataframe to normalize.
+- `alpha`: The alpha parameter for Huberization. Default is 1.
+- `error_on_zero_mad`: Whether to throw an error if the MAD is zero. Default is `true`.
+- `start_col`: The column to start normalizing from. Default is 1.
+- `end_col`: The column to end normalizing at. Default is the last column.
+
+!!! warning
+    If you set `error_on_zero_mad` to `false`, this function will return a result with NaN
+    values if the MAD is zero. This can be useful if you are expecting this behavior and
+    want to handle it yourself, but should be used with caution.
+"""
+function huberize(df::DataFrame; alpha::Real = 1,
+        error_on_zero_mad::Bool = true,
+        start_col::Int64 = 1, end_col::Int64 = size(df, 2))
+    transformed = DataFrame(huberize(Matrix(df[:, start_col:end_col]); alpha, error_on_zero_mad),
+        Symbol.(names(df)[start_col:end_col]))
+    return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
+end
+
+"""
     huberize(
-        x::Vector{<:Real}; alpha::Float64 = 1.0,
+        x::Vector{<:Real}; alpha::Real = 1,
         error_on_zero_mad::Bool = true
     )
 
@@ -183,9 +268,14 @@ Performs Huberization for a single vector.
 - `x`: The vector to Huberize.
 - `alpha`: The alpha parameter for the Huberization. Default is 1.0.
 - `error_on_zero_mad`: Whether to throw an error if the MAD is zero. Default is `true`.
+
+!!! warning
+    If you set `error_on_zero_mad` to `false`, this function will return a result with NaN
+    values if the MAD is zero. This can be useful if you are expecting this behavior and
+    want to handle it yourself, but should be used with caution.
 """
 function huberize(
-        x::Vector{<:Real}; alpha::Float64 = 1.0,
+        x::Vector{<:Real}; alpha::Real = 1,
         error_on_zero_mad::Bool = true
 )
     error_on_zero_mad && check_mad(x)
@@ -198,7 +288,7 @@ function huberize(
 end
 
 """
-    huberloss(x::Real; alpha::Float64 = 1.0)
+    huberloss(x::Real; alpha::Real = 1)
 
 Computes the Huber loss for a given value. This is defined as:
 
@@ -211,9 +301,9 @@ L(x) = \\begin{cases}
 
 # Arguments
 - `x`: The value to compute the Huber loss for.
-- `alpha`: The alpha parameter for the Huber loss. Default is 1.0.
+- `alpha`: The alpha parameter for the Huber loss. Default is 1.
 """
-function huberloss(x::Real; alpha::Float64 = 1.0)
+function huberloss(x::Real; alpha::Real = 1)
     @assert alpha > 0 "Huber crossover parameter alpha must be positive."
     d = abs(x)
     if d <= alpha
