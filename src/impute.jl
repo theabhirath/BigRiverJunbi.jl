@@ -87,7 +87,7 @@ function _substitute!(data::AbstractArray{<:Union{Missing, Real}}, statistic::Fu
 end
 
 """
-    impute_zero(df::DataFrame; start_col::Int64 = 1)
+    impute_zero(df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2))
 
 Replaces missing elements in the specified columns with zero.
 
@@ -95,6 +95,7 @@ Replaces missing elements in the specified columns with zero.
 
 - `df`: dataframe with missing values.
 - `start_col`: column index to start imputing from.
+- `end_col`: column index to end imputing at.
 
 # Examples
 
@@ -122,9 +123,9 @@ julia> BigRiverJunbi.impute_zero(df)
    3 │      3       0       5       7      10
 ```
 """
-function impute_zero(df::DataFrame; start_col::Int64 = 1)
-    m = Matrix(df[:, start_col:end])
-    return DataFrame(impute_zero!(m), Symbol.(names(df)[start_col:end]))
+function impute_zero(df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2))
+    m = Matrix(df[:, start_col:end_col])
+    return DataFrame(impute_zero!(m), Symbol.(names(df)[start_col:end_col]))
 end
 
 """
@@ -153,7 +154,7 @@ Replace missing elements with zero and writes the result back to the original ma
 impute_zero!(data::Matrix{<:Union{Missing, Real}}) = substitute!(data, x -> 0; dims = 1)
 
 """
-    impute_min(df::DataFrame; start_col::Int64 = 1)
+    impute_min(df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2))
 
 Replaces missing elements in the specified columns with the minimum of non-missing elements
 in the corresponding variable.
@@ -162,6 +163,7 @@ in the corresponding variable.
 
 - `df`: dataframe with missing values.
 - `start_col`: column index to start imputing from.
+- `end_col`: column index to end imputing at.
 
 # Examples
 
@@ -189,15 +191,15 @@ julia> BigRiverJunbi.impute_min(df)
    3 │      3       3       5       7      10
 ```
 """
-function impute_min(df::DataFrame; start_col::Int64 = 1)
-    m = Matrix(df[:, start_col:end])
-    return DataFrame(impute_min!(m), Symbol.(names(df)[start_col:end]))
+function impute_min(df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2))
+    m = Matrix(df[:, start_col:end_col])
+    return DataFrame(impute_min!(m), Symbol.(names(df)[start_col:end_col]))
 end
 impute_min(data::Matrix{<:Union{Missing, Real}}) = impute_min!(trycopy(data))
 impute_min!(data::Matrix{<:Union{Missing, Real}}) = substitute!(data, minimum; dims = 1)
 
 """
-    impute_min_prob(df::DataFrame; start_col::Int64 = 1, q = 0.01; tune_sigma = 1)
+    impute_min_prob(df::DataFrame; q = 0.01, tune_sigma = 1, start_col::Int64 = 1, end_col::Int64 = size(df, 2))
 
 Replaces missing values in the specified columns with random draws from a gaussian
 distribution centered in the minimum value observed and with standard deviation equal to
@@ -206,21 +208,23 @@ the median value of the population of line-wise standard deviations.
 # Arguments
 
 - `df`: dataframe with missing values.
-- `start_col`: column index to start imputing from.
 - `q`: quantile of the minimum values to use for imputation. Default is 0.01.
 - `tune_sigma`: coefficient that controls the sd of the MNAR distribution:
                 - 1 if the complete data distribution is supposed to be gaussian.
                 - 0 < tune_sigma < 1 if the complete data distribution is supposed to be
                   left-censored.
                Default is 1.0.
+- `start_col`: column index to start imputing from.
+- `end_col`: column index to end imputing at.
 """
-function impute_min_prob(df::DataFrame; start_col::Int64 = 1, q = 0.01, tune_sigma = 1)
-    m = Matrix{Union{Missing, Float64}}(df[:, start_col:end])
-    return DataFrame(impute_min_prob!(m, q; tune_sigma), Symbol.(names(df)[start_col:end]))
+function impute_min_prob(
+        df::DataFrame; q = 0.01, tune_sigma = 1, start_col::Int64 = 1, end_col::Int64 = size(df, 2))
+    m = Matrix{Union{Missing, Float64}}(df[:, start_col:end_col])
+    return DataFrame(impute_min_prob!(m, q; tune_sigma), Symbol.(names(df)[start_col:end_col]))
 end
 
 """
-    impute_min_prob(data::Matrix{Union{Missing, Float64}}, q = 0.01; tune_sigma = 1)
+    impute_min_prob(data::Matrix{<:Union{Missing, Real}}, q::Float64 = 0.01; tune_sigma::Float64 = 1.0)
 
 Replaces missing values with random draws from a gaussian distribution centered in the
 minimum value observed and with standard deviation equal to the median value of the
@@ -238,8 +242,10 @@ original matrix.
                   left-censored.
                Default is 1.0.
 """
-function impute_min_prob(data::Matrix{Union{Missing, Float64}}, q = 0.01; tune_sigma = 1)
-    return impute_min_prob!(trycopy(data), q; tune_sigma)
+function impute_min_prob(
+        data::Matrix{<:Union{Missing, Real}}, q::Float64 = 0.01; tune_sigma::Float64 = 1.0)
+    promoted = convert(Matrix{Union{Missing, Float64}}, data)
+    return impute_min_prob!(trycopy(promoted), q; tune_sigma)
 end
 
 """
@@ -263,6 +269,7 @@ population of line-wise standard deviations. Writes the result back to the origi
 function impute_min_prob!(data::Matrix{Union{Missing, Float64}}, q = 0.01; tune_sigma = 1)
     n_samples, n_features = size(data)
     # select the minimum values sample-wise (corresponding to the q-th quantile)
+    # TODO: handle edge case, all values in a slice are missing
     min_vals = mapslices(data, dims = 1) do x
         quantile(skipmissing(x), q)
     end
@@ -287,7 +294,7 @@ function impute_min_prob!(data::Matrix{Union{Missing, Float64}}, q = 0.01; tune_
 end
 
 """
-    impute_half_min(df::DataFrame; start_col::Int64 = 1)
+    impute_half_min(df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2))
 
 Replaces missing elements in the specified columns with half of the minimum of
 non-missing elements in the corresponding variable.
@@ -296,6 +303,7 @@ non-missing elements in the corresponding variable.
 
 - `df`: dataframe with missing values.
 - `start_col`: column index to start imputing from.
+- `end_col`: column index to end imputing at.
 
 # Examples
 
@@ -323,9 +331,9 @@ julia> BigRiverJunbi.impute_half_min(df)
    3 │      3       1       5       7      10
 ```
 """
-function impute_half_min(df::DataFrame; start_col::Int64 = 1)
-    m = Matrix(df[:, start_col:end])
-    return DataFrame(impute_half_min!(m), Symbol.(names(df)[start_col:end]))
+function impute_half_min(df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2))
+    m = Matrix(df[:, start_col:end_col])
+    return DataFrame(impute_half_min!(m), Symbol.(names(df)[start_col:end_col]))
 end
 
 impute_half_min(m::Matrix{<:Union{Missing, Integer}}) = impute_half_min!(trycopy(m))
@@ -340,7 +348,7 @@ function impute_half_min!(m::Matrix{<:Union{Missing, Real}})
 end
 
 """
-    impute_cat(df_missing::DataFrame; start_col::Int64 = 1)
+    impute_median_cat(df_missing::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df_missing, 2))
 
 Returns imputated dataframe based on a categorical imputation:
     - 0: Missing values
@@ -351,6 +359,7 @@ Returns imputated dataframe based on a categorical imputation:
 
 - `df_missing`: dataframe with missing values.
 - `start_col`: column index to start imputing from.
+- `end_col`: column index to end imputing at.
 
 # Examples
 
@@ -378,9 +387,10 @@ julia> BigRiverJunbi.impute_median_cat(df)
    3 │      2       0       2       2       2
 ```
 """
-function impute_median_cat(df_missing::DataFrame; start_col::Int64 = 1)
-    m = Matrix(df_missing[:, start_col:end])
-    return DataFrame(impute_median_cat!(m), Symbol.(names(df_missing)[start_col:end]))
+function impute_median_cat(
+        df_missing::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df_missing, 2))
+    m = Matrix(df_missing[:, start_col:end_col])
+    return DataFrame(impute_median_cat!(m), Symbol.(names(df_missing)[start_col:end_col]))
 end
 
 """
@@ -435,7 +445,7 @@ function impute_median_cat!(data::Matrix{<:Union{Missing, Real}})
 end
 
 """
-    imputeKNN(df::DataFrame; k = 5, threshold = 0.2, start_col = 1)
+    imputeKNN(df::DataFrame; k = 5, threshold = 0.2, start_col = 1, end_col = size(df, 2))
 
 Replaces missing elements based on k-nearest neighbors (KNN) imputation.
 
@@ -445,16 +455,20 @@ Replaces missing elements based on k-nearest neighbors (KNN) imputation.
 - `k`: number of nearest neighbors to use for imputation.
 - `threshold`: threshold for the number of missing neighbors above which the imputation is
   skipped.
+- `start_col`: column index to start imputing from.
+- `end_col`: column index to end imputing at.
 """
 function imputeKNN(
         df::DataFrame;
         k::Int = 5,
         threshold::Float64 = 0.2,
-        start_col::Int64 = 1
+        start_col::Int64 = 1,
+        end_col::Int64 = size(df, 2)
 )
-    mat = Matrix{Union{Missing, Float64}}(df[:, start_col:end])
+    # TODO: add a example/doctest
+    mat = Matrix(df[:, start_col:end_col])
     return DataFrame(
-        imputeKNN(mat, k; threshold, dims = 1), Symbol.(names(df)[start_col:end])
+        imputeKNN(mat, k; threshold, dims = 1), Symbol.(names(df)[start_col:end_col])
     )
 end
 
@@ -483,21 +497,20 @@ imputation method from [Impute.jl](https://github.com/invenia/Impute.jl).
   Distances.jl. Default is `Euclidean()`. This can only be one of the
   Minkowski metrics i.e. Euclidean, Cityblock, Minkowski and Chebyshev.
 """
-# TODO: add a example/doctest
 function imputeKNN(
-        data::AbstractMatrix{Union{Missing, Float64}},
+        data::AbstractMatrix{<:Union{Missing, Real}},
         k::Int = 1;
         threshold::Float64 = 0.5,
         dims::Union{Nothing, Int} = nothing,
         distance::NearestNeighbors.MinkowskiMetric = Euclidean()
 )
     # check arguments
-    k < 1 &&
-        throw(ArgumentError("The number of nearset neighbors should be greater than 0"))
+    k < 1 && throw(ArgumentError("The number of nearset neighbors should be greater than 0"))
     !(0 < threshold < 1) &&
         throw(ArgumentError("Missing neighbors threshold should be within 0 to 1"))
 
-    return imputeKNN!(trycopy(data), k + 1, threshold, dims, distance)
+    promoted = convert(Matrix{Union{Missing, Float64}}, data)
+    return imputeKNN!(trycopy(promoted), k + 1, threshold, dims, distance)
 end
 
 """
@@ -577,13 +590,120 @@ function imputeKNN!(
     return allowmissing(dims == 1 ? X : transpose(X))
 end
 
-function imputeSVD(df::DataFrame; start_col::Int64 = 1)
-    mat = Matrix{Union{Missing, Float64}}(df[:, start_col:end])
-    return DataFrame(imputeSVD(mat), Symbol.(names(df)[start_col:end]))
+"""
+    impute_QRILC(df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2))
+
+Replaces missing elements in the specified columns based on the "Quantile regression
+Imputation for left-censored data" (QRILC) method.
+
+# Arguments
+
+- `df`: dataframe with missing values.
+- `start_col`: column index to start imputing from.
+- `end_col`: column index to end imputing at.
+"""
+# TODO: add a example/doctest
+function impute_QRILC(df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2))
+    mat = Matrix{Union{Missing, Float64}}(df[:, start_col:end_col])
+    return DataFrame(impute_QRILC!(mat), Symbol.(names(df)[start_col:end_col]))
+end
+
+"""
+    impute_QRILC(
+        data::Matrix{Union{Missing, Float64}};
+        tune_sigma::Float64 = 1.0,
+        eps::Float64 = 0.005
+    )
+
+Returns imputated matrix based on the "Quantile regression Imputation for left-censored
+data" (QRILC) method. The function is based on the function `impute.QRILC` from the
+`imputeLCMD` R package, with one difference: the default value of `eps` is set to 0.005
+instead of 0.001.
+
+# Arguments
+
+- `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
+  and the columns are the features.
+- `tune_sigma`: coefficient that controls the SD of the MNAR distribution:
+                - 1 if the complete data distribution is supposed to be gaussian.
+                - 0 < tune_sigma < 1 if the complete data distribution is supposed to be
+                  left-censored.
+  Default is 1.0.
+- `eps`: small value added to the quantile for stability.
+"""
+function impute_QRILC(
+        data::Matrix{<:Union{Missing, Float64}};
+        tune_sigma = 1.0,
+        eps = 0.005
+)
+    promoted = convert(Matrix{Union{Missing, Float64}}, data)
+    return impute_QRILC!(trycopy(promoted); tune_sigma, eps)
+end
+
+"""
+    impute_QRILC!(
+        data::Matrix{Union{Missing, Float64}};
+        tune_sigma::Float64 = 1.0,
+        eps::Float64 = 0.005
+    )
+
+Imputes missing elements based on the "Quantile regression Imputation for left-censored
+data" (QRILC) method. Writes the result back to the original matrix. The function is based on
+the function `impute.QRILC` from the `imputeLCMD` R package, with one difference: the
+default value of `eps` is set to 0.005 instead of 0.001.
+
+# Arguments
+
+- `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
+  and the columns are the features.
+- `tune_sigma`: coefficient that controls the SD of the MNAR distribution:
+                - 1 if the complete data distribution is supposed to be gaussian.
+                - 0 < tune_sigma < 1 if the complete data distribution is supposed to be
+                  left-censored.
+- `eps`: small value added to the quantile for stability.
+"""
+# TODO: elaborate on eps and why it is set to 0.005
+function impute_QRILC!(
+        data::Matrix{<:Union{Missing, Float64}};
+        tune_sigma = 1.0,
+        eps = 0.005
+)
+    # Get dimensions of the data
+    n_samples, n_features = size(data)
+    for i in 1:n_samples
+        curr_sample = data[:, i]
+        # Calculate the percentage of missing values
+        pNAs = count(ismissing, curr_sample) / length(curr_sample)
+        # Estimate the mean and standard deviation of the original
+        # distribution using quantile regression
+        upper_q = 0.99
+        q_normal = map(Base.Fix1(quantile, Normal(0, 1)), LinRange(pNAs + eps, upper_q + eps, 100))
+        q_curr_sample = quantile(skipmissing(curr_sample), LinRange(eps, upper_q + eps, 100))
+        temp_QR = lm(hcat(ones(length(q_normal), 1), reshape(q_normal, :, 1)), q_curr_sample)
+        # get the coefficients of the quantile regression
+        coefs = coef(temp_QR)
+        mean_CDD, sd_CDD = coefs[1], abs(coefs[2])
+        # generate data from a truncated normal distribution with the estimated parameters
+        truncated_dist = truncated(
+            Normal(mean_CDD, sd_CDD * tune_sigma);
+            upper = quantile(Normal(mean_CDD, sd_CDD), pNAs + eps)
+        )
+        curr_sample_imputed = trycopy(curr_sample)
+        missing_idx = findall(ismissing, curr_sample)
+        curr_sample_imputed[missing_idx] .= rand(truncated_dist, n_features)[missing_idx]
+        data[:, i] = curr_sample_imputed
+    end
+    return data
+end
+
+### TODO: add docstrings for the SVD imputation methods
+function imputeSVD(df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2))
+    mat = Matrix(df[:, start_col:end_col])
+    return DataFrame(imputeSVD(mat), Symbol.(names(df)[start_col:end_col]))
 end
 
 function imputeSVD(
-        data::AbstractMatrix{Union{Missing, Float64}};
+        data::AbstractMatrix{<:Union{Missing, Real}};
         rank::Union{Nothing, Int} = nothing,
         tol::Float64 = 1e-10,
         maxiter::Int = 100,
@@ -591,7 +711,8 @@ function imputeSVD(
         dims::Union{Nothing, Int} = nothing,
         verbose::Bool = true
 )
-    return imputeSVD!(trycopy(data); rank, tol, maxiter, limits, dims, verbose)
+    promoted = convert(Matrix{Union{Missing, Float64}}, data)
+    return imputeSVD!(trycopy(promoted); rank, tol, maxiter, limits, dims, verbose)
 end
 
 function imputeSVD!(
@@ -647,112 +768,5 @@ function imputeSVD!(
         isfinite(C) && C < tol && break
     end
 
-    return data
-end
-
-"""
-    impute_QRILC(df::DataFrame; start_col::Int64 = 1)
-
-Replaces missing elements in the specified columns based on the "Quantile regression
-Imputation for left-censored data" (QRILC) method.
-
-# Arguments
-
-- `df`: dataframe with missing values.
-- `start_col`: column index to start imputing from.
-"""
-# TODO: add a example/doctest
-function impute_QRILC(df::DataFrame; start_col::Int64 = 1)
-    mat = Matrix{Union{Missing, Float64}}(df[:, start_col:end])
-    return DataFrame(impute_QRILC!(mat), Symbol.(names(df)[start_col:end]))
-end
-
-"""
-    impute_QRILC(
-        data::Matrix{Union{Missing, Float64}};
-        tune_sigma::Float64 = 1.0,
-        eps::Float64 = 0.005
-    )
-
-Returns imputated matrix based on the "Quantile regression Imputation for left-censored
-data" (QRILC) method. The function is based on the function `impute.QRILC` from the
-`imputeLCMD` R package, with one difference: the default value of `eps` is set to 0.005
-instead of 0.001.
-
-# Arguments
-
-- `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
-  and the columns are the features.
-- `tune_sigma`: coefficient that controls the SD of the MNAR distribution:
-                - 1 if the complete data distribution is supposed to be gaussian.
-                - 0 < tune_sigma < 1 if the complete data distribution is supposed to be
-                  left-censored.
-  Default is 1.0.
-- `eps`: small value added to the quantile for stability.
-"""
-function impute_QRILC(
-        data::Matrix{Union{Missing, Float64}};
-        tune_sigma::Float64 = 1.0,
-        eps::Float64 = 0.005
-)
-    return impute_QRILC!(trycopy(data); tune_sigma, eps)
-end
-
-"""
-    impute_QRILC!(
-        data::Matrix{Union{Missing, Float64}};
-        tune_sigma::Float64 = 1.0,
-        eps::Float64 = 0.005
-    )
-
-Imputes missing elements based on the "Quantile regression Imputation for left-censored
-data" (QRILC) method. Writes the result back to the original matrix. The function is based on
-the function `impute.QRILC` from the `imputeLCMD` R package, with one difference: the
-default value of `eps` is set to 0.005 instead of 0.001.
-
-# Arguments
-
-- `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
-  and the columns are the features.
-- `tune_sigma`: coefficient that controls the SD of the MNAR distribution:
-                - 1 if the complete data distribution is supposed to be gaussian.
-                - 0 < tune_sigma < 1 if the complete data distribution is supposed to be
-                  left-censored.
-- `eps`: small value added to the quantile for stability.
-"""
-# TODO: elaborate on eps and why it is set to 0.005
-function impute_QRILC!(
-        data::Matrix{Union{Missing, Float64}};
-        tune_sigma::Float64 = 1.0,
-        eps::Float64 = 0.005
-)
-    # Get dimensions of the data
-    n_samples, n_features = size(data)
-    for i in 1:n_samples
-        curr_sample = data[:, i]
-        # Calculate the percentage of missing values
-        pNAs = count(ismissing, curr_sample) / length(curr_sample)
-        # Estimate the mean and standard deviation of the original distribution using quantile regression
-        upper_q = 0.99
-        q_normal = map(Base.Fix1(quantile, Normal(0, 1)), LinRange(pNAs + eps, upper_q + eps, 100))
-        q_curr_sample = quantile(
-            skipmissing(curr_sample), LinRange(eps, upper_q + eps, 100)
-        )
-        temp_QR = lm(
-            hcat(ones(length(q_normal), 1), reshape(q_normal, :, 1)), q_curr_sample
-        )
-        # get the coefficients of the quantile regression
-        coefs = coef(temp_QR)
-        mean_CDD, sd_CDD = coefs[1], abs(coefs[2])
-        # generate data from a truncated normal distribution with the estimated parameters
-        truncated_dist = truncated(
-            Normal(mean_CDD, sd_CDD * tune_sigma);
-            upper = quantile(Normal(mean_CDD, sd_CDD), pNAs + eps)
-        )
-        curr_sample_imputed = trycopy(curr_sample)
-        missing_idx = findall(ismissing, curr_sample)
-        curr_sample_imputed[missing_idx] .= rand(truncated_dist, n_features)[missing_idx]
-        data[:, i] = curr_sample_imputed
-    end
     return data
 end
