@@ -1,6 +1,5 @@
 module BigRiverJunbi
 
-using DataFrames
 using NearestNeighbors
 using StatsBase
 using Missings

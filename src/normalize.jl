@@ -35,26 +35,6 @@ function intnorm(mat::Matrix{<:Real}; dims::Int64 = 2, lambda::Real = 1)
 end
 
 """
-    intnorm(df::DataFrame; lambda::Float64 = 1.0,
-            start_col::Int64 = 1, end_col::Int64 = size(df, 2))
-
-Total Area Normalization for each row or column. By default, it normalizes each row.
-This requires that the matrix has all positive values.
-
-# Arguments
-- `df`: The dataframe to normalize.
-- `lambda`: The lambda parameter for the normalization. Default is 1.
-- `start_col`: The column to start normalizing from. Default is 1.
-- `end_col`: The column to end normalizing at. Default is the last column.
-"""
-function intnorm(df::DataFrame; lambda::Real = 1,
-        start_col::Int64 = 1, end_col::Int64 = size(df, 2))
-    transformed = DataFrame(intnorm(Matrix(df[:, start_col:end_col]); lambda),
-        Symbol.(names(df)[start_col:end_col]))
-    return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
-end
-
-"""
     pqnorm(mat::Matrix{<:Real}; lambda::Real = 1)
 
 Performs a probabilistic quotient normalization (PQN) for sample intensities.
@@ -101,27 +81,6 @@ function pqnorm(mat::Matrix{<:Real}; lambda::Real = 1)
 end
 
 """
-    pqnorm(df::DataFrame; lambda::Real = 1,
-           start_col::Int64 = 1, end_col::Int64 = size(df, 2))
-
-Performs a probabilistic quotient normalization (PQN) for sample intensities.
-This assumes that the matrix is organized as samples x features and requires that the
-matrix have all positive values.
-
-# Arguments
-- `df`: The dataframe to normalize.
-- `lambda`: The lambda parameter for the normalization. Default is 1.
-- `start_col`: The column to start normalizing from. Default is 1.
-- `end_col`: The column to end normalizing at. Default is the last column.
-"""
-function pqnorm(df::DataFrame; lambda::Real = 1,
-        start_col::Int64 = 1, end_col::Int64 = size(df, 2))
-    transformed = DataFrame(pqnorm(Matrix(df[:, start_col:end_col]); lambda),
-        Symbol.(names(df)[start_col:end_col]))
-    return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
-end
-
-"""
     quantilenorm(data::Matrix{<:Real})
 
 Performs quantile normalization for sample intensities. This assumes
@@ -161,23 +120,6 @@ function quantilenorm(data::Matrix{<:Real})
         get.(Ref(data_mean_ranked), x, missing)
     end
     return results
-end
-
-"""
-    quantilenorm(df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2))
-
-Performs quantile normalization for sample intensities. This assumes
-that the matrix is organized as samples x features.
-
-# Arguments
-- `df`: The dataframe to normalize.
-- `start_col`: The column to start normalizing from. Default is 1.
-- `end_col`: The column to end normalizing at. Default is the last column.
-"""
-function quantilenorm(df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2))
-    transformed = DataFrame(quantilenorm(Matrix(df[:, start_col:end_col])),
-        Symbol.(names(df)[start_col:end_col]))
-    return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
 end
 
 """
@@ -227,33 +169,6 @@ function huberize(
     return mapslices(mat, dims = 1) do x
         huberize(x; alpha, error_on_zero_mad)
     end
-end
-
-"""
-    huberize(df::DataFrame; alpha::Real = 1,
-             error_on_zero_mad::Bool = true,
-             start_col::Int64 = 1, end_col::Int64 = size(df, 2))
-
-Performs Huberization for sample intensities.
-
-# Arguments
-- `df`: The dataframe to normalize.
-- `alpha`: The alpha parameter for Huberization. Default is 1.
-- `error_on_zero_mad`: Whether to throw an error if the MAD is zero. Default is `true`.
-- `start_col`: The column to start normalizing from. Default is 1.
-- `end_col`: The column to end normalizing at. Default is the last column.
-
-!!! warning
-    If you set `error_on_zero_mad` to `false`, this function will return a result with NaN
-    values if the MAD is zero. This can be useful if you are expecting this behavior and
-    want to handle it yourself, but should be used with caution.
-"""
-function huberize(df::DataFrame; alpha::Real = 1,
-        error_on_zero_mad::Bool = true,
-        start_col::Int64 = 1, end_col::Int64 = size(df, 2))
-    transformed = DataFrame(huberize(Matrix(df[:, start_col:end_col]); alpha, error_on_zero_mad),
-        Symbol.(names(df)[start_col:end_col]))
-    return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
 end
 
 """
