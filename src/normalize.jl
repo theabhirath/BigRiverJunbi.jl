@@ -227,3 +227,17 @@ function huberloss(x::Real; alpha::Real = 1)
         return alpha * (d - alpha^2 / 2)
     end
 end
+
+"""
+    standardize(mat::Matrix{<:Real}; center::Bool = true)
+
+Standardize a matrix i.e. scale to unit variance, with the option of centering or not.
+
+# Arguments
+- `mat`: The matrix to standardize.
+- `center`: Whether to center the data. Default is `true`.
+"""
+function standardize(mat::Matrix{<:Real}; center::Bool = true)
+    dt = fit(ZScoreTransform, mat; dims = 1, center)
+    return StatsBase.transform(dt, mat)
+end

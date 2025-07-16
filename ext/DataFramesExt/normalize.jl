@@ -84,3 +84,23 @@ function BigRiverJunbi.huberize(df::DataFrame; alpha::Real = 1,
         Symbol.(names(df)[start_col:end_col]))
     return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
 end
+
+"""
+    standardize(df::DataFrame; center::Bool = true,
+                start_col::Int64 = 1, end_col::Int64 = size(df, 2))
+
+Standardize a dataframe i.e. scale to unit variance, with the option of centering or not.
+
+# Arguments
+- `df`: The dataframe to standardize.
+- `center`: Whether to center the data. Default is `true`.
+- `start_col`: The column to start standardizing from. Default is 1.
+- `end_col`: The column to end standardizing at. Default is the last column.
+"""
+function BigRiverJunbi.standardize(df::DataFrame; center::Bool = true,
+        start_col::Int64 = 1, end_col::Int64 = size(df, 2))
+    transformed = DataFrame(
+        BigRiverJunbi.standardize(Matrix(df[:, start_col:end_col]); center),
+        Symbol.(names(df)[start_col:end_col]))
+    return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
+end
