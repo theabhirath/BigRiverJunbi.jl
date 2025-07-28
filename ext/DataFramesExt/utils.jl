@@ -53,10 +53,12 @@ function missing_summary(df::DataFrame)
     total_missing = string(round(total_missing, digits = 2))
     push!(pmissing_rows, total_missing) # add a row for the total
     # add the missing counts and rows to the dataframe
-    df = vcat(df,
+    df = vcat(
+        df,
         DataFrame(
             Dict(name => value for (name, value) in zip(names(df), pmissing_cols))
-        ))
+        )
+    )
     df = insertcols(df, :pmissing_rows => pmissing_rows)
     hl_t = Highlighter(
         (data, i, j) -> i == size(df, 1) && j == size(df, 2),

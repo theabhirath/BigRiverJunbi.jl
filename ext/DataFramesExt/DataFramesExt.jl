@@ -1,6 +1,8 @@
 module DataFramesExt
 
-using DataFrames, BigRiverJunbi
+using DataFrames
+using PrettyTables
+using BigRiverJunbi
 
 include("impute.jl")
 include("normalize.jl")

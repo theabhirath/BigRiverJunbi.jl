@@ -11,10 +11,14 @@ This requires that the matrix has all positive values.
 - `start_col`: The column to start normalizing from. Default is 1.
 - `end_col`: The column to end normalizing at. Default is the last column.
 """
-function BigRiverJunbi.intnorm(df::DataFrame; lambda::Real = 1,
-        start_col::Int64 = 1, end_col::Int64 = size(df, 2))
-    transformed = DataFrame(BigRiverJunbi.intnorm(Matrix(df[:, start_col:end_col]); lambda),
-        Symbol.(names(df)[start_col:end_col]))
+function BigRiverJunbi.intnorm(
+        df::DataFrame; lambda::Real = 1,
+        start_col::Int64 = 1, end_col::Int64 = size(df, 2)
+    )
+    transformed = DataFrame(
+        BigRiverJunbi.intnorm(Matrix(df[:, start_col:end_col]); lambda),
+        Symbol.(names(df)[start_col:end_col])
+    )
     return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
 end
 
@@ -32,10 +36,14 @@ matrix have all positive values.
 - `start_col`: The column to start normalizing from. Default is 1.
 - `end_col`: The column to end normalizing at. Default is the last column.
 """
-function BigRiverJunbi.pqnorm(df::DataFrame; lambda::Real = 1,
-        start_col::Int64 = 1, end_col::Int64 = size(df, 2))
-    transformed = DataFrame(BigRiverJunbi.pqnorm(Matrix(df[:, start_col:end_col]); lambda),
-        Symbol.(names(df)[start_col:end_col]))
+function BigRiverJunbi.pqnorm(
+        df::DataFrame; lambda::Real = 1,
+        start_col::Int64 = 1, end_col::Int64 = size(df, 2)
+    )
+    transformed = DataFrame(
+        BigRiverJunbi.pqnorm(Matrix(df[:, start_col:end_col]); lambda),
+        Symbol.(names(df)[start_col:end_col])
+    )
     return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
 end
 
@@ -51,9 +59,12 @@ that the matrix is organized as samples x features.
 - `end_col`: The column to end normalizing at. Default is the last column.
 """
 function BigRiverJunbi.quantilenorm(
-        df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2))
-    transformed = DataFrame(BigRiverJunbi.quantilenorm(Matrix(df[:, start_col:end_col])),
-        Symbol.(names(df)[start_col:end_col]))
+        df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2)
+    )
+    transformed = DataFrame(
+        BigRiverJunbi.quantilenorm(Matrix(df[:, start_col:end_col])),
+        Symbol.(names(df)[start_col:end_col])
+    )
     return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
 end
 
@@ -76,12 +87,15 @@ Performs Huberization for sample intensities.
     values if the MAD is zero. This can be useful if you are expecting this behavior and
     want to handle it yourself, but should be used with caution.
 """
-function BigRiverJunbi.huberize(df::DataFrame; alpha::Real = 1,
+function BigRiverJunbi.huberize(
+        df::DataFrame; alpha::Real = 1,
         error_on_zero_mad::Bool = true,
-        start_col::Int64 = 1, end_col::Int64 = size(df, 2))
+        start_col::Int64 = 1, end_col::Int64 = size(df, 2)
+    )
     transformed = DataFrame(
         BigRiverJunbi.huberize(Matrix(df[:, start_col:end_col]); alpha, error_on_zero_mad),
-        Symbol.(names(df)[start_col:end_col]))
+        Symbol.(names(df)[start_col:end_col])
+    )
     return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
 end
 
@@ -97,10 +111,13 @@ Standardize a dataframe i.e. scale to unit variance, with the option of centerin
 - `start_col`: The column to start standardizing from. Default is 1.
 - `end_col`: The column to end standardizing at. Default is the last column.
 """
-function BigRiverJunbi.standardize(df::DataFrame; center::Bool = true,
-        start_col::Int64 = 1, end_col::Int64 = size(df, 2))
+function BigRiverJunbi.standardize(
+        df::DataFrame; center::Bool = true,
+        start_col::Int64 = 1, end_col::Int64 = size(df, 2)
+    )
     transformed = DataFrame(
         BigRiverJunbi.standardize(Matrix(df[:, start_col:end_col]); center),
-        Symbol.(names(df)[start_col:end_col]))
+        Symbol.(names(df)[start_col:end_col])
+    )
     return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
 end

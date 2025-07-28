@@ -30,7 +30,7 @@ julia> BigRiverJunbi.log_tx(mat; constant = 1)
 function log_tx(mat::Matrix{<:Real}; base::Real = 2, constant::Real = 0)
     mat = mat .+ constant
     @assert all(mat .> 0) "Matrix has non-positive values even after adding constant. Please" *
-                          " remove such values before transforming."
+        " remove such values before transforming."
     return log.(base, mat)
 end
 

@@ -12,10 +12,14 @@ Default base is 2, default constant is 0.
 - `start_col`: The column to start transforming from. Default is 1.
 - `end_col`: The column to end transforming at. Default is the last column.
 """
-function BigRiverJunbi.log_tx(df::DataFrame; base::Real = 2, constant::Real = 0,
-        start_col::Int64 = 1, end_col::Int64 = size(df, 2))
-    transformed = DataFrame(BigRiverJunbi.log_tx(Matrix(df[:, start_col:end_col]); base, constant),
-        Symbol.(names(df)[start_col:end_col]))
+function BigRiverJunbi.log_tx(
+        df::DataFrame; base::Real = 2, constant::Real = 0,
+        start_col::Int64 = 1, end_col::Int64 = size(df, 2)
+    )
+    transformed = DataFrame(
+        BigRiverJunbi.log_tx(Matrix(df[:, start_col:end_col]); base, constant),
+        Symbol.(names(df)[start_col:end_col])
+    )
     return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
 end
 
@@ -32,8 +36,11 @@ all positive values.
 - `end_col`: The column to end transforming at. Default is the last column.
 """
 function BigRiverJunbi.meancenter_tx(
-        df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2))
-    transformed = DataFrame(BigRiverJunbi.meancenter_tx(Matrix(df[:, start_col:end_col]); dims),
-        Symbol.(names(df)[start_col:end_col]))
+        df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2)
+    )
+    transformed = DataFrame(
+        BigRiverJunbi.meancenter_tx(Matrix(df[:, start_col:end_col]); dims),
+        Symbol.(names(df)[start_col:end_col])
+    )
     return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
 end

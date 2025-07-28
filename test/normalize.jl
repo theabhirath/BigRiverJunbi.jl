@@ -1,15 +1,19 @@
 @testitem "intnorm" begin
     # Test basic functionality from doctest example
-    mat = [0.5 1 2 3 3.5;
-           7 3 5 1.5 4.5;
-           8 2 7 6 9]
+    mat = [
+        0.5 1 2 3 3.5;
+        7 3 5 1.5 4.5;
+        8 2 7 6 9
+    ]
 
-    expected = [0.05 0.1 0.2 0.3 0.35;
-                0.333333 0.142857 0.238095 0.0714286 0.214286;
-                0.25 0.0625 0.21875 0.1875 0.28125]
+    expected = [
+        0.05 0.1 0.2 0.3 0.35;
+        0.333333 0.142857 0.238095 0.0714286 0.214286;
+        0.25 0.0625 0.21875 0.1875 0.28125
+    ]
 
     result = BigRiverJunbi.intnorm(mat)
-    @test result ≈ expected rtol=1e-5
+    @test result ≈ expected rtol = 1.0e-5
 
     # Test column-wise normalization (dims=1)
     result_col = BigRiverJunbi.intnorm(mat; dims = 1)
@@ -33,16 +37,20 @@ end
 
 @testitem "pqnorm" begin
     # Test basic functionality from doctest example
-    mat = [0.5 1 2 3 3.5;
-           7 3 5 1.5 4.5;
-           8 2 7 6 9]
+    mat = [
+        0.5 1 2 3 3.5;
+        7 3 5 1.5 4.5;
+        8 2 7 6 9
+    ]
 
-    expected = [0.05 0.1 0.2 0.3 0.35;
-                0.30625 0.13125 0.21875 0.065625 0.196875;
-                0.25 0.0625 0.21875 0.1875 0.28125]
+    expected = [
+        0.05 0.1 0.2 0.3 0.35;
+        0.30625 0.13125 0.21875 0.065625 0.196875;
+        0.25 0.0625 0.21875 0.1875 0.28125
+    ]
 
     result = BigRiverJunbi.pqnorm(mat)
-    @test result ≈ expected rtol=1e-5
+    @test result ≈ expected rtol = 1.0e-5
 
     # Test error with negative values
     mat_negative = [1 -2; 3 4]
@@ -56,17 +64,21 @@ end
 end
 
 @testitem "quantilenorm" begin
-    # Test basic functionality from doctest example  
-    mat = [0.5 1 2 3 3.5;
-           7 3 5 1.5 4.5;
-           8 2 7 6 9]
+    # Test basic functionality from doctest example
+    mat = [
+        0.5 1 2 3 3.5;
+        7 3 5 1.5 4.5;
+        8 2 7 6 9
+    ]
 
-    expected = [1.7 1.7 1.7 4.3 1.7;
-                4.3 6.6 4.3 1.7 4.3;
-                6.6 4.3 6.6 6.6 6.6]
+    expected = [
+        1.7 1.7 1.7 4.3 1.7;
+        4.3 6.6 4.3 1.7 4.3;
+        6.6 4.3 6.6 6.6 6.6
+    ]
 
     result = BigRiverJunbi.quantilenorm(mat)
-    @test result ≈ expected rtol=1e-10
+    @test result ≈ expected rtol = 1.0e-10
 
     # Test with identical columns
     mat_identical = [1.0 1.0; 2.0 2.0; 3.0 3.0]
@@ -88,16 +100,20 @@ end
 
 @testitem "huberize matrix" begin
     # Test normal case without MAD issues
-    mat = [0.5 1 2 3 3.5;
-           7 3 5 1.5 4.5;
-           8 2 7 6 9]
+    mat = [
+        0.5 1 2 3 3.5;
+        7 3 5 1.5 4.5;
+        8 2 7 6 9
+    ]
 
-    expected = [2.86772 1.0 2.0002 3.0 3.5;
-                7.0 3.0 5.0 1.5 4.5;
-                8.0 2.0 7.0 5.89787 7.83846]
+    expected = [
+        2.86772 1.0 2.0002 3.0 3.5;
+        7.0 3.0 5.0 1.5 4.5;
+        8.0 2.0 7.0 5.89787 7.83846
+    ]
 
     result = BigRiverJunbi.huberize(mat)
-    @test result ≈ expected rtol=1e-4
+    @test result ≈ expected rtol = 1.0e-4
 
     # Test with different alpha
     result_alpha = BigRiverJunbi.huberize(mat; alpha = 0.5)
@@ -112,15 +128,19 @@ end
     @test any(isnan.(result_no_error))
 
     # Test with zero MAD and error_on_zero_mad = true
-    mat_zero_mad_error = [0.5 1 2 3 3.5;
-                          7 3 5 0 3.5;
-                          8 2 5 6 0]
+    mat_zero_mad_error = [
+        0.5 1 2 3 3.5;
+        7 3 5 0 3.5;
+        8 2 5 6 0
+    ]
 
-    @test_throws ErrorException("The MAD (median absolute deviation) of the following " *
-                                "slices along dimension 2: [\"3\", \"5\"] is zero, which " *
-                                "implies that some of the data is very close to the " *
-                                "median. the data is very close to the median. Please " *
-                                "check your data.") BigRiverJunbi.huberize(mat_zero_mad_error)
+    @test_throws ErrorException(
+        "The MAD (median absolute deviation) of the following " *
+            "slices along dimension 2: [\"3\", \"5\"] is zero, which " *
+            "implies that some of the data is very close to the " *
+            "median. the data is very close to the median. Please " *
+            "check your data."
+    ) BigRiverJunbi.huberize(mat_zero_mad_error)
 end
 
 @testitem "huberize vector" begin
@@ -135,7 +155,7 @@ end
     @test result[5] < x[5]
 
     # Non-outliers should be relatively unchanged or slightly modified
-    @test result[1:4] ≈ x[1:4] rtol=0.3
+    @test result[1:4] ≈ x[1:4] rtol = 0.3
 
     # Test with different alpha
     result_alpha = BigRiverJunbi.huberize(x; alpha = 0.5)

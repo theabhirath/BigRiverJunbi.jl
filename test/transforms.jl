@@ -4,16 +4,20 @@
     using Statistics
 
     # Test basic functionality from doctest example
-    mat = [0.5 1 2 3 3.5;
-           7 3 5 0 3.5;
-           8 2 5 6 0]
+    mat = [
+        0.5 1 2 3 3.5;
+        7 3 5 0 3.5;
+        8 2 5 6 0
+    ]
 
     # Test with constant to avoid log(0)
     result = BigRiverJunbi.log_tx(mat; constant = 1)
-    expected = [0.584963 1.0 1.58496 2.0 2.16993;
-                3.0 2.0 2.58496 0.0 2.16993;
-                3.16993 1.58496 2.58496 2.80735 0.0]
-    @test result ≈ expected rtol=1e-4
+    expected = [
+        0.584963 1.0 1.58496 2.0 2.16993;
+        3.0 2.0 2.58496 0.0 2.16993;
+        3.16993 1.58496 2.58496 2.80735 0.0
+    ]
+    @test result ≈ expected rtol = 1.0e-4
 
     # Test with different base
     mat_positive = [1.0 2.0 4.0; 8.0 16.0 32.0]
@@ -99,7 +103,7 @@ end
     @test result_float32 isa Matrix{Float32}
 
     # Test with very small positive values
-    mat_tiny = [1e-10 1e-5; 1e-3 1.0]
+    mat_tiny = [1.0e-10 1.0e-5; 1.0e-3 1.0]
     result_tiny = BigRiverJunbi.log_tx(mat_tiny; constant = 0)
     # Should not throw error since all values are positive
     @test all(isfinite.(result_tiny))
@@ -111,19 +115,23 @@ end
     using Statistics
 
     # Test basic functionality from doctest example
-    mat = [0.5 1 2 3 3.5;
-           7 3 5 0 3.5;
-           8 2 5 6 0]
+    mat = [
+        0.5 1 2 3 3.5;
+        7 3 5 0 3.5;
+        8 2 5 6 0
+    ]
 
     result = BigRiverJunbi.meancenter_tx(mat)
-    expected = [-4.66667 -1.0 -2.0 0.0 1.16667;
-                1.83333 1.0 1.0 -3.0 1.16667;
-                2.83333 0.0 1.0 3.0 -2.33333]
-    @test result ≈ expected rtol=1e-4
+    expected = [
+        -4.66667 -1.0 -2.0 0.0 1.16667;
+        1.83333 1.0 1.0 -3.0 1.16667;
+        2.83333 0.0 1.0 3.0 -2.33333
+    ]
+    @test result ≈ expected rtol = 1.0e-4
 
     # Test that column means are approximately zero after centering (dims=1)
     col_means = mean(result; dims = 1)
-    @test all(abs.(col_means) .< 1e-10)
+    @test all(abs.(col_means) .< 1.0e-10)
 
     # Test column-wise centering (dims=2)
     result_dims2 = BigRiverJunbi.meancenter_tx(mat, 2)
@@ -132,7 +140,7 @@ end
 
     # Test that row means are approximately zero after centering (dims=2)
     row_means = mean(result_dims2; dims = 2)
-    @test all(abs.(row_means) .< 1e-10)
+    @test all(abs.(row_means) .< 1.0e-10)
 
     # Verify manual calculation matches function
     manual_result = mat .- mean(mat; dims = 1)
@@ -256,12 +264,12 @@ end
     mat_positive = [1.0 ℯ ℯ^2; ℯ^3 ℯ^4 ℯ^5]
     result_natural = BigRiverJunbi.log_tx(mat_positive; base = ℯ)
     expected_natural = [0.0 1.0 2.0; 3.0 4.0 5.0]
-    @test result_natural ≈ expected_natural rtol=1e-10
+    @test result_natural ≈ expected_natural rtol = 1.0e-10
 
     # Property test: mean centering should not change variance patterns
     mat_variance_test = randn(5, 4)  # Random matrix
     original_vars = var(mat_variance_test; dims = 1)
     centered = BigRiverJunbi.meancenter_tx(mat_variance_test)
     centered_vars = var(centered; dims = 1)
-    @test original_vars ≈ centered_vars rtol=1e-10
+    @test original_vars ≈ centered_vars rtol = 1.0e-10
 end

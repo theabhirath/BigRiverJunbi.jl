@@ -6,7 +6,7 @@ using Missings
 using GLM
 using Distributions
 using Statistics
-using PrettyTables
+using Random
 using LinearAlgebra
 
 include("transforms.jl")

@@ -30,7 +30,7 @@ julia> BigRiverJunbi.intnorm(mat)
 function intnorm(mat::Matrix{<:Real}; dims::Int64 = 2, lambda::Real = 1)
     # if matrix has any negative values, throw an error
     @assert all(mat .>= 0) "Matrix has negative values. Please remove negative values" *
-                           " before normalizing."
+        " before normalizing."
     return mat ./ (sum(mat; dims = dims) ./ lambda)
 end
 
@@ -65,7 +65,7 @@ julia> BigRiverJunbi.pqnorm(mat)
 function pqnorm(mat::Matrix{<:Real}; lambda::Real = 1)
     # if matrix has any negative values, throw an error
     @assert all(mat .>= 0) "Matrix has negative values. Please remove negative values" *
-                           " before normalizing."
+        " before normalizing."
     # Integral normalization
     mat = intnorm(mat; dims = 2, lambda)
     # Calculate the reference spectrum (default: median) of all samples
@@ -158,10 +158,7 @@ julia> BigRiverJunbi.huberize(mat)
  8.0      2.0  7.0     5.89787  7.83846
 ```
 """
-function huberize(
-        mat::Matrix{<:Real}; alpha::Real = 1,
-        error_on_zero_mad::Bool = true
-)
+function huberize(mat::Matrix{<:Real}; alpha::Real = 1, error_on_zero_mad::Bool = true)
     # check if the MAD is zero for each column and throw an error if it is
     # disable this check if error_on_zero_mad is false
     error_on_zero_mad && check_mad(mat; dims = 2)
@@ -189,10 +186,7 @@ Performs Huberization for a single vector.
     values if the MAD is zero. This can be useful if you are expecting this behavior and
     want to handle it yourself, but should be used with caution.
 """
-function huberize(
-        x::Vector{<:Real}; alpha::Real = 1,
-        error_on_zero_mad::Bool = true
-)
+function huberize(x::Vector{<:Real}; alpha::Real = 1, error_on_zero_mad::Bool = true)
     error_on_zero_mad && check_mad(x)
     med = median(x)
     s = mad(x; center = med, normalize = true)
