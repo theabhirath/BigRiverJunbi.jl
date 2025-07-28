@@ -20,7 +20,11 @@ makedocs(;
     format = DocumenterVitepress.MarkdownVitepress(
         repo = "https://github.com/senresearch/BigRiverJunbi.jl",
     ),
-    pages = ["Home" => "index.md", "API" => "api.md", "DataFrames" => "df-api.md"]
+    pages = [
+        "Home" => "index.md",
+        "Functions for matrices" => "api.md",
+        "Functions for dataframes" => "df-api.md",
+    ]
 )
 
 DocumenterVitepress.deploydocs(;

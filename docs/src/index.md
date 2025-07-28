@@ -26,7 +26,11 @@ hero:
 
 <h1> What is BigRiverJunbi.jl? </h1>
 
-BigRiverJunbi.jl is a Julia package for data preprocessing and exploratory analysis specifically for 'omics data. While it can be used as a standalone package, it was designed to be used in conjunction with the BigRiverMetabolomics.jl package.
+BigRiverJunbi.jl is a Julia package for 'omics data preprocessing. While it can be used as a standalone package, it was designed to be used in conjunction with the BigRiverMetabolomics.jl package.
+
+<h3> Why the name? </h3>
+
+"Junbi" (準備, 준비, 准备) is the word for "preparation" in Chinese, Korean, and Japanese (the pronunciation is slightly different in each of these).
 
 <h2> Installation </h2>
 

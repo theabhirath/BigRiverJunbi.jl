@@ -1,4 +1,4 @@
-# API Reference
+# Functions for matrices
 
 ```@index
 Pages   = ["api.md"]
