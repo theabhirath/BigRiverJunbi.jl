@@ -22,7 +22,7 @@
 
     # Test with different lambda
     result_lambda = BigRiverJunbi.intnorm(mat; lambda = 2.0)
-    expected_lambda = mat ./ (2.0 .* sum(mat; dims = 2))
+    expected_lambda = mat ./ (sum(mat; dims = 2) ./ 2.0)
     @test result_lambda ≈ expected_lambda
 
     # Test error with negative values

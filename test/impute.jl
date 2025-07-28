@@ -60,27 +60,31 @@ end
     using BigRiverJunbi
     using Statistics
 
-    # Test basic functionality - dims=1 means row-wise operation
+    # Test basic functionality - default behavior uses global minimum
     mat = [1.0 missing 3.0; 4.0 5.0 missing; 7.0 8.0 9.0]
     mat_copy = copy(mat)
 
     # Test non-mutating version
     result = BigRiverJunbi.impute_min(mat)
-    # Row 1: min([1.0, 3.0]) = 1.0 for missing value
-    # Row 2: min([4.0, 5.0]) = 4.0 for missing value
-    @test result[1, 2] ≈ minimum([1.0, 3.0])  # row 1 min = 1.0
-    @test result[2, 3] ≈ minimum([4.0, 5.0])  # row 2 min = 4.0
+    # Global minimum across all non-missing values is 1.0
+    @test result[1, 2] ≈ 1.0  # global min = 1.0
+    @test result[2, 3] ≈ 1.0  # global min = 1.0
     @test isequal(mat, mat_copy)  # use isequal for arrays with missing
 
     # Test mutating version
     BigRiverJunbi.impute_min!(mat)
     @test mat[1, 2] ≈ 1.0
-    @test mat[2, 3] ≈ 4.0
+    @test mat[2, 3] ≈ 1.0
+
+    # Test row-wise behavior when dims=1 is explicitly specified
+    result_rowwise = BigRiverJunbi.impute_min(mat_copy; dims=1)
+    @test result_rowwise[1, 2] ≈ minimum([1.0, 3.0])  # row 1 min = 1.0
+    @test result_rowwise[2, 3] ≈ minimum([4.0, 5.0])  # row 2 min = 4.0
 
     # Test with matrix (not vector) - impute_min only works with matrices
     mat_single = Matrix([missing 5.0])  # 1x2 matrix instead of reshape
     result = BigRiverJunbi.impute_min(mat_single)
-    @test result[1, 1] ≈ 5.0  # min of row 1 is 5.0
+    @test result[1, 1] ≈ 5.0  # min of the matrix is 5.0
 end
 
 @testitem "impute_half_min and impute_half_min!" begin
@@ -94,22 +98,26 @@ end
 
     # Test non-mutating version
     result = BigRiverJunbi.impute_half_min(mat)
-    # Row 1: min([2.0, 4.0])/2 = 1.0 for missing value
-    # Row 2: min([6.0, 8.0])/2 = 3.0 for missing value
-    @test result[1, 2] ≈ minimum([2.0, 4.0]) / 2  # 1.0
-    @test result[2, 3] ≈ minimum([6.0, 8.0]) / 2  # 3.0
+    # Global minimum across all non-missing values is 2.0, so half is 1.0
+    @test result[1, 2] ≈ 1.0  # global min/2 = 2.0/2 = 1.0
+    @test result[2, 3] ≈ 1.0  # global min/2 = 2.0/2 = 1.0
     @test isequal(mat, mat_copy)  # use isequal for arrays with missing
 
     # Test mutating version
     BigRiverJunbi.impute_half_min!(mat)
-    @test mat[1, 2] ≈ 1.0  # 2/2
-    @test mat[2, 3] ≈ 3.0  # 6/2
+    @test mat[1, 2] ≈ 1.0  # 2.0/2
+    @test mat[2, 3] ≈ 1.0  # 2.0/2
+
+    # Test row-wise behavior when dims=1 is explicitly specified
+    result_rowwise = BigRiverJunbi.impute_half_min(mat_copy; dims=1)
+    @test result_rowwise[1, 2] ≈ minimum([2.0, 4.0]) / 2  # 1.0
+    @test result_rowwise[2, 3] ≈ minimum([6.0, 8.0]) / 2  # 3.0
 
     # Test with Integer matrix
     mat_int = [2 missing 4; 6 8 missing]
     result = BigRiverJunbi.impute_half_min(mat_int)
     @test result[1, 2] == 1  # 2÷2
-    @test result[2, 3] == 3  # 6÷2
+    @test result[2, 3] == 1  # 2÷2    
 end
 
 @testitem "impute_median_cat and impute_median_cat!" begin
@@ -175,6 +183,46 @@ end
     mat_int = [1 missing; 2 3]
     result_zero = BigRiverJunbi.impute_zero(mat_int)
     @test eltype(result_zero) <: Union{Missing, Int}
+
+    # Test with negative values
+    mat_negative = [1.0 -2.0 missing; 3.0 4.0 missing]
+    result_neg = BigRiverJunbi.impute_min(mat_negative)
+    @test result_neg[1, 3] ≈ -2.0  # global minimum is -2.0
+    @test result_neg[2, 3] ≈ -2.0  # global minimum is -2.0
+
+    # Test with zeros
+    mat_zeros = [0.0 missing 1.0; 2.0 3.0 missing]
+    result_zeros = BigRiverJunbi.impute_min(mat_zeros)
+    @test result_zeros[1, 2] ≈ 0.0  # global minimum is 0.0
+    @test result_zeros[2, 3] ≈ 0.0  # global minimum is 0.0
+
+    # Test column-wise behavior when dims=2 is specified
+    mat_colwise = [1.0 missing 3.0; 4.0 5.0 missing; 7.0 8.0 9.0]
+    result_colwise = BigRiverJunbi.impute_min(mat_colwise; dims=2)
+    @test result_colwise[1, 2] ≈ minimum([5.0, 8.0])  # column 2 min (non-missing values)
+    @test result_colwise[2, 3] ≈ minimum([3.0, 9.0])  # column 3 min (non-missing values)
+
+    # Test with all missing in one row but not others
+    mat_partial_missing = [missing missing missing; 1.0 2.0 3.0]
+    @test_throws ErrorException BigRiverJunbi.impute_min!(mat_partial_missing; dims=1)
+    # But should work with global behavior
+    result_partial = BigRiverJunbi.impute_min(mat_partial_missing)
+    @test result_partial[1, 1] ≈ 1.0  # global minimum is 1.0
+
+    # Test with all missing in one column but not others
+    mat_col_missing = [1.0 missing 3.0; 2.0 missing 4.0]
+    @test_throws ErrorException BigRiverJunbi.impute_min!(mat_col_missing; dims=2)
+    # But should work with global behavior
+    result_col = BigRiverJunbi.impute_min(mat_col_missing)
+    @test result_col[1, 2] ≈ 1.0  # global minimum is 1.0
+    @test result_col[2, 2] ≈ 1.0  # global minimum is 1.0
+
+    # Test with single non-missing value
+    mat_single_value = [missing missing; missing 5.0]
+    result_single = BigRiverJunbi.impute_min(mat_single_value)
+    @test result_single[1, 1] ≈ 5.0  # only non-missing value is 5.0
+    @test result_single[1, 2] ≈ 5.0  # only non-missing value is 5.0
+    @test result_single[2, 1] ≈ 5.0  # only non-missing value is 5.0
 end
 
 @testitem "Performance and memory tests" begin
