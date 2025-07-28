@@ -1,9 +1,13 @@
 using BigRiverJunbi
+using DataFrames
 using Documenter
 using DocumenterVitepress
 
+DocMeta.setdocmeta!(BigRiverJunbi, :DocTestSetup, :(using BigRiverJunbi); recursive = true)
+
 DocMeta.setdocmeta!(
-    BigRiverJunbi,
+    isdefined(Base, :get_extension) ? Base.get_extension(BigRiverJunbi, :DataFramesExt) :
+        BigRiverJunbi.DataFramesExt,
     :DocTestSetup,
     :(using BigRiverJunbi, DataFrames);
     recursive = true
@@ -16,7 +20,7 @@ makedocs(;
     format = DocumenterVitepress.MarkdownVitepress(
         repo = "https://github.com/senresearch/BigRiverJunbi.jl",
     ),
-    pages = ["Home" => "index.md", "API" => "api.md"]
+    pages = ["Home" => "index.md", "API" => "api.md", "DataFrames" => "df-api.md"]
 )
 
 DocumenterVitepress.deploydocs(;
