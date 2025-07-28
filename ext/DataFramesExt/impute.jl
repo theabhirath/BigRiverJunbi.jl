@@ -36,7 +36,8 @@ julia> BigRiverJunbi.impute_zero(df)
 ```
 """
 function BigRiverJunbi.impute_zero(
-        df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2))
+        df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2)
+    )
     m = Matrix(df[:, start_col:end_col])
     transformed = DataFrame(BigRiverJunbi.impute_zero!(m), Symbol.(names(df)[start_col:end_col]))
     return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
@@ -105,11 +106,14 @@ the median value of the population of line-wise standard deviations.
 - `start_col`: column index to start imputing from.
 - `end_col`: column index to end imputing at.
 """
+# TODO: add a example/doctest
 function BigRiverJunbi.impute_min_prob(
-        df::DataFrame; q = 0.01, tune_sigma = 1, start_col::Int64 = 1, end_col::Int64 = size(df, 2))
-    m = convert(Matrix{Union{Missing, Float64}}, df[:, start_col:end_col])
+        df::DataFrame; q = 0.01, tune_sigma = 1, start_col::Int64 = 1, end_col::Int64 = size(df, 2)
+    )
+    m = Matrix{Union{Missing, Float64}}(df[:, start_col:end_col])
     transformed = DataFrame(
-        BigRiverJunbi.impute_min_prob!(m, q; tune_sigma), Symbol.(names(df)[start_col:end_col]))
+        BigRiverJunbi.impute_min_prob!(m, q; tune_sigma), Symbol.(names(df)[start_col:end_col])
+    )
     return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
 end
 
@@ -152,10 +156,12 @@ julia> BigRiverJunbi.impute_half_min(df)
 ```
 """
 function BigRiverJunbi.impute_half_min(
-        df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2))
+        df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2)
+    )
     m = Matrix(df[:, start_col:end_col])
     transformed = DataFrame(
-        BigRiverJunbi.impute_half_min!(m), Symbol.(names(df)[start_col:end_col]))
+        BigRiverJunbi.impute_half_min!(m), Symbol.(names(df)[start_col:end_col])
+    )
     return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
 end
 
@@ -200,10 +206,12 @@ julia> BigRiverJunbi.impute_median_cat(df)
 ```
 """
 function BigRiverJunbi.impute_median_cat(
-        df_missing::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df_missing, 2))
+        df_missing::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df_missing, 2)
+    )
     m = Matrix(df_missing[:, start_col:end_col])
     transformed = DataFrame(
-        BigRiverJunbi.impute_median_cat!(m), Symbol.(names(df_missing)[start_col:end_col]))
+        BigRiverJunbi.impute_median_cat!(m), Symbol.(names(df_missing)[start_col:end_col])
+    )
     return hcat(df_missing[:, 1:(start_col - 1)], transformed, df_missing[:, (end_col + 1):end])
 end
 
@@ -227,9 +235,9 @@ function BigRiverJunbi.imputeKNN(
         threshold::Float64 = 0.2,
         start_col::Int64 = 1,
         end_col::Int64 = size(df, 2)
-)
+    )
     # TODO: add a example/doctest
-    mat = convert(Matrix{Union{Missing, Float64}}, df[:, start_col:end_col])
+    mat = Matrix{Union{Missing, Float64}}(df[:, start_col:end_col])
     transformed = DataFrame(
         BigRiverJunbi.imputeKNN(mat, k; threshold, dims = 1), Symbol.(names(df)[start_col:end_col])
     )
@@ -250,15 +258,17 @@ Imputation for left-censored data" (QRILC) method.
 """
 # TODO: add a example/doctest
 function BigRiverJunbi.impute_QRILC(
-        df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2))
-    mat = convert(Matrix{Union{Missing, Float64}}, df[:, start_col:end_col])
+        df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2)
+    )
+    mat = Matrix{Union{Missing, Float64}}(df[:, start_col:end_col])
     transformed = DataFrame(BigRiverJunbi.impute_QRILC!(mat), Symbol.(names(df)[start_col:end_col]))
     return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
 end
 
-### TODO: add a example/doctest
+# TODO: add docstring
+# TODO: add a example/doctest
 function BigRiverJunbi.imputeSVD(df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2))
-    mat = convert(Matrix{Union{Missing, Float64}}, df[:, start_col:end_col])
+    mat = Matrix{Union{Missing, Float64}}(df[:, start_col:end_col])
     transformed = DataFrame(BigRiverJunbi.imputeSVD(mat), Symbol.(names(df)[start_col:end_col]))
     return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
 end

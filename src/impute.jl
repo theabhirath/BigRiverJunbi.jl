@@ -20,7 +20,7 @@ function substitute(
         data::AbstractArray{<:Union{Missing, Real}},
         statistic::Function;
         dims::Union{Nothing, Int} = nothing
-)
+    )
     return substitute!(trycopy(data), statistic; dims)
 end
 
@@ -46,7 +46,7 @@ function substitute!(
         data::AbstractArray{<:Union{Missing, Real}},
         statistic::Function;
         dims::Union{Nothing, Int} = nothing
-)
+    )
     # if dims is nothing, substitute the whole array
     isnothing(dims) && return _substitute!(data, statistic)
     # if dims is specified, it must be smaller than the dimension of the array
@@ -69,18 +69,18 @@ function _substitute!(data::AbstractArray{<:Union{Missing, Real}}, statistic::Fu
         catch
             error(
                 "Failed to replace missing values with the value calculated by " *
-                "the statistic. This usually happens when the type returned by " *
-                "the statistic function is not the same as the type of the data. " *
-                "Please check your statistic function or promote the type of the " *
-                "data to the type returned by the statistic function and try again."
+                    "the statistic. This usually happens when the type returned by " *
+                    "the statistic function is not the same as the type of the data. " *
+                    "Please check your statistic function or promote the type of the " *
+                    "data to the type returned by the statistic function and try again."
             )
         end
         return data
     else
         error(
             "All values in the input slice are missing. This usually happens when " *
-            "there is a row or column with all missing values along the specified " *
-            "dimension. Please check your data."
+                "there is a row or column with all missing values along the specified " *
+                "dimension. Please check your data."
         )
     end
     return data
@@ -109,13 +109,98 @@ Replace missing elements with zero and writes the result back to the original ma
 - `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
   and the columns are the features.
 """
-impute_zero!(data::Matrix{<:Union{Missing, Real}}) = substitute!(data, x -> 0; dims = 1)
-
-impute_min(data::Matrix{<:Union{Missing, Real}}) = impute_min!(trycopy(data))
-impute_min!(data::Matrix{<:Union{Missing, Real}}) = substitute!(data, minimum; dims = 1)
+impute_zero!(data::Matrix{<:Union{Missing, Real}}) = substitute!(data, x -> 0)
 
 """
-    impute_min_prob(data::Matrix{<:Union{Missing, Real}}, q::Float64 = 0.01; tune_sigma::Float64 = 1.0)
+    impute_min(data::Matrix{<:Union{Missing, Real}}; dims::Union{Nothing, Int} = nothing)
+
+Replaces missing elements with the minimum value of the non-missing elements and returns a
+new matrix without modifying the original matrix.
+
+# Arguments
+
+- `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
+  and the columns are the features.
+- `dims`: dimension along which the minimum values are calculated. Default is nothing, which
+  means the whole matrix is used.
+"""
+function impute_min(data::Matrix{<:Union{Missing, Real}}; dims::Union{Nothing, Int} = nothing)
+    return impute_min!(trycopy(data); dims)
+end
+
+"""
+    impute_min!(data::Matrix{<:Union{Missing, Real}}; dims::Union{Nothing, Int} = nothing)
+
+Replaces missing elements with the minimum value of the non-missing elements and writes the
+result back to the original matrix.
+
+# Arguments
+
+- `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
+  and the columns are the features.
+- `dims`: dimension along which the minimum values are calculated. Default is nothing, which
+  means the whole matrix is used.
+"""
+function impute_min!(data::Matrix{<:Union{Missing, Real}}; dims::Union{Nothing, Int} = nothing)
+    return substitute!(data, minimum; dims)
+end
+
+"""
+    impute_half_min(data::Matrix{<:Union{Missing, Real}}; dims::Union{Nothing, Int} = nothing)
+
+Replaces missing elements with half of the minimum value of the non-missing elements and
+returns a new matrix without modifying the original matrix.
+
+!!! note
+    For integer matrices, the half of the minimum value is calculated by integer division i.e.
+    the result of the division is rounded down to the nearest integer if the result is not
+    an integer.
+
+# Arguments
+
+- `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
+  and the columns are the features.
+- `dims`: dimension along which the minimum values are calculated. Default is nothing, which
+  means the whole matrix is used.
+"""
+function impute_half_min(data::Matrix{<:Union{Missing, Real}}; dims::Union{Nothing, Int} = nothing)
+    return impute_half_min!(trycopy(data); dims)
+end
+
+"""
+    impute_half_min!(data::Matrix{<:Union{Missing, Real}}; dims::Union{Nothing, Int} = nothing)
+
+Replaces missing elements with half of the minimum value of the non-missing elements and
+writes the result back to the original matrix.
+
+!!! note
+    For integer matrices, the half of the minimum value is calculated by integer division
+    i.e. the result of the division is rounded down to the nearest integer if the result is
+    not an integer.
+
+# Arguments
+
+- `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
+  and the columns are the features.
+- `dims`: dimension along which the minimum values are calculated. Default is nothing, which
+  means the whole matrix is used.
+"""
+function impute_half_min!(data::Matrix{<:Union{Missing, Real}}; dims::Union{Nothing, Int} = nothing)
+    return substitute!(data, x -> minimum(x) / 2; dims)
+end
+
+function impute_half_min!(
+        data::Matrix{<:Union{Missing, Integer}}; dims::Union{Nothing, Int} = nothing
+    )
+    return substitute!(data, x -> minimum(x) ÷ 2; dims)
+end
+
+"""
+    impute_min_prob(
+        data::Matrix{<:Union{Missing, Real}}, q::Float64 = 0.01;
+        tune_sigma::Float64 = 1.0, dims::Int = 1,
+        rng::AbstractRNG = Random.default_rng()
+    )
 
 Replaces missing values with random draws from a gaussian distribution centered in the
 minimum value observed and with standard deviation equal to the median value of the
@@ -127,6 +212,7 @@ original matrix.
 - `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
   and the columns are the features.
 - `q`: quantile of the minimum values to use for imputation. Default is 0.01.
+- `dims`: dimension along which the minimum values are calculated. Default is 1.
 - `tune_sigma`: coefficient that controls the sd of the MNAR distribution:
                 - 1 if the complete data distribution is supposed to be gaussian.
                 - 0 < tune_sigma < 1 if the complete data distribution is supposed to be
@@ -134,15 +220,22 @@ original matrix.
                Default is 1.0.
 """
 function impute_min_prob(
-        data::Matrix{<:Union{Missing, Real}}, q::Float64 = 0.01; tune_sigma::Float64 = 1.0)
+        data::Matrix{<:Union{Missing, Real}}, q::Float64 = 0.01;
+        tune_sigma::Float64 = 1.0, dims::Int = 1,
+        rng::AbstractRNG = Random.default_rng()
+    )
     promoted = convert(Matrix{Union{Missing, Float64}}, data)
-    return impute_min_prob!(trycopy(promoted), q; tune_sigma)
+    return impute_min_prob!(trycopy(promoted), q; tune_sigma, dims, rng)
 end
 
 """
-    impute_min_prob!(data::Matrix{Union{Missing, Float64}}, q = 0.01; tune_sigma = 1)
+    impute_min_prob!(
+        data::Matrix{Union{Missing, Float64}}, q = 0.01;
+        tune_sigma = 1, dims::Int = 1,
+        rng::AbstractRNG = Random.default_rng()
+    )
 
-Replaces missing values with random draws from a gaussian distribution centered in the
+Replaces missing values with random draws from a gaussian distribution centered around the
 minimum value observed and with standard deviation equal to the median value of the
 population of line-wise standard deviations. Writes the result back to the original matrix.
 
@@ -151,49 +244,60 @@ population of line-wise standard deviations. Writes the result back to the origi
 - `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
   and the columns are the features.
 - `q`: quantile of the minimum values to use for imputation. Default is 0.01.
+- `dims`: dimension along which the minimum values are calculated. Default is 1.
 - `tune_sigma`: coefficient that controls the sd of the MNAR distribution:
                 - 1 if the complete data distribution is supposed to be gaussian.
                 - 0 < tune_sigma < 1 if the complete data distribution is supposed to be
                   left-censored.
-               Default is 1.0.
+                Default is 1.0.
 """
-function impute_min_prob!(data::Matrix{Union{Missing, Float64}}, q = 0.01; tune_sigma = 1)
+function impute_min_prob!(
+        data::Matrix{Union{Missing, Float64}}, q = 0.01;
+        tune_sigma = 1, dims::Int = 1,
+        rng::AbstractRNG = Random.default_rng()
+    )
+    @assert 0 < q < 1 "q must be between 0 and 1"
+    @assert 0 <= tune_sigma <= 1 "tune_sigma must be between 0 and 1"
+    @assert dims ∈ (1, 2) "dims must be 1 or 2"
     n_samples, n_features = size(data)
     # select the minimum values sample-wise (corresponding to the q-th quantile)
-    # TODO: handle edge case, all values in a slice are missing
-    min_vals = mapslices(data, dims = 1) do x
+    min_vals = mapslices(data; dims) do x
+        # edge case: all values in a slice are missing
+        if all(ismissing, x)
+            throw(
+                error(
+                    "All values in a slice are missing. This usually happens when " *
+                        "there is a row or column with all missing values along the " *
+                        "specified dimension. Please check your data."
+                )
+            )
+        end
         quantile(skipmissing(x), q)
     end
-    # estimate protein-wise standard deviation using only proteins containing more than 50% non-NAs
-    pNA_cols = sum(!ismissing, data; dims = 1) ./ n_samples
+    # estimate standard deviation using only features containing more than 50% non-NAs
+    pNA_cols = sum(!ismissing, data; dims) ./ n_samples
     pNA_cols_mask = vec(pNA_cols .> 0.5)
-    data_filtered = data[:, pNA_cols_mask]
-    sd_vals = mapslices(data_filtered; dims = 1) do x
+    data_filtered = dims == 1 ? data[:, pNA_cols_mask] : data[pNA_cols_mask, :]
+    sd_vals = mapslices(data_filtered; dims) do x
         std(skipmissing(x))
     end
     sd_temp = median(sd_vals) * tune_sigma
     # generate data from a normal distribution with the estimated parameters
     for i in 1:n_samples
         dist = Normal(min_vals[i], sd_temp)
-        curr_sample = data[:, i]
+        curr_sample = dims == 1 ? data[:, i] : data[i, :]
         curr_sample_imputed = trycopy(curr_sample)
         missing_idx = findall(ismissing, curr_sample)
-        curr_sample_imputed[missing_idx] .= rand(dist, n_features)[missing_idx]
-        data[:, i] = curr_sample_imputed
+        curr_sample_imputed[missing_idx] .= rand(rng, dist, n_features)[missing_idx]
+        if dims == 1
+            data[:, i] = curr_sample_imputed
+        else
+            data[i, :] = curr_sample_imputed
+        end
     end
     return data
 end
 
-impute_half_min(m::Matrix{<:Union{Missing, Integer}}) = impute_half_min!(trycopy(m))
-impute_half_min(m::Matrix{<:Union{Missing, Real}}) = impute_half_min!(trycopy(m))
-
-function impute_half_min!(m::Matrix{<:Union{Missing, Integer}})
-    return substitute!(m, x -> minimum(x) ÷ 2; dims = 1)
-end
-
-function impute_half_min!(m::Matrix{<:Union{Missing, Real}})
-    return substitute!(m, x -> minimum(x) / 2; dims = 1)
-end
 
 """
     impute_median_cat(data::Matrix{<:Union{Missing, Real}})
@@ -277,7 +381,7 @@ function imputeKNN(
         threshold::Float64 = 0.5,
         dims::Union{Nothing, Int} = nothing,
         distance::NearestNeighbors.MinkowskiMetric = Euclidean()
-)
+    )
     # check arguments
     k < 1 && throw(ArgumentError("The number of nearset neighbors should be greater than 0"))
     !(0 < threshold < 1) &&
@@ -290,9 +394,7 @@ end
 """
     imputeKNN!(
         data::AbstractMatrix{Union{Missing, Float64}},
-        k::Int,
-        threshold::Float64,
-        dims::Union{Nothing, Int},
+        k::Int, threshold::Float64, dims::Union{Nothing, Int},
         distance::NearestNeighbors.MinkowskiMetric
     )
 
@@ -314,11 +416,9 @@ method from [Impute.jl](https://github.com/invenia/Impute.jl).
 """
 function imputeKNN!(
         data::AbstractMatrix{Union{Missing, Float64}},
-        k::Int,
-        threshold::Float64,
-        dims::Union{Nothing, Int},
+        k::Int, threshold::Float64, dims::Union{Nothing, Int},
         distance::NearestNeighbors.MinkowskiMetric
-)
+    )
     # KDTree wants dims x nrows, so we transpose the data
     X = dims == 1 ? data : transpose(data)
     # get mask array
@@ -386,21 +486,22 @@ instead of 0.001.
                   left-censored.
   Default is 1.0.
 - `eps`: small value added to the quantile for stability.
+- `rng`: random number generator. Default is `Random.default_rng()`.
 """
 function impute_QRILC(
         data::Matrix{<:Union{Missing, Real}};
-        tune_sigma = 1.0,
-        eps = 0.005
-)
+        tune_sigma = 1.0, eps = 0.005,
+        rng::AbstractRNG = Random.default_rng()
+    )
     promoted = convert(Matrix{Union{Missing, Float64}}, data)
-    return impute_QRILC!(trycopy(promoted); tune_sigma, eps)
+    return impute_QRILC!(trycopy(promoted); tune_sigma, eps, rng)
 end
 
 """
     impute_QRILC!(
         data::Matrix{Union{Missing, Float64}};
-        tune_sigma::Float64 = 1.0,
-        eps::Float64 = 0.005
+        tune_sigma::Float64 = 1.0, eps::Float64 = 0.005,
+        rng::AbstractRNG = Random.default_rng()
     )
 
 Imputes missing elements based on the "Quantile regression Imputation for left-censored
@@ -417,13 +518,14 @@ default value of `eps` is set to 0.005 instead of 0.001.
                 - 0 < tune_sigma < 1 if the complete data distribution is supposed to be
                   left-censored.
 - `eps`: small value added to the quantile for stability.
+- `rng`: random number generator. Default is `Random.default_rng()`.
 """
 # TODO: elaborate on eps and why it is set to 0.005
 function impute_QRILC!(
         data::Matrix{<:Union{Missing, Float64}};
-        tune_sigma = 1.0,
-        eps = 0.005
-)
+        tune_sigma = 1.0, eps = 0.005,
+        rng::AbstractRNG = Random.default_rng()
+    )
     # Get dimensions of the data
     n_samples, n_features = size(data)
     for i in 1:n_samples
@@ -446,7 +548,7 @@ function impute_QRILC!(
         )
         curr_sample_imputed = trycopy(curr_sample)
         missing_idx = findall(ismissing, curr_sample)
-        curr_sample_imputed[missing_idx] .= rand(truncated_dist, n_features)[missing_idx]
+        curr_sample_imputed[missing_idx] .= rand(rng, truncated_dist, n_features)[missing_idx]
         data[:, i] = curr_sample_imputed
     end
     return data
@@ -456,12 +558,12 @@ end
 function imputeSVD(
         data::AbstractMatrix{<:Union{Missing, Real}};
         rank::Union{Nothing, Int} = nothing,
-        tol::Float64 = 1e-10,
+        tol::Float64 = 1.0e-10,
         maxiter::Int = 100,
         limits::Union{Tuple{Float64, Float64}, Nothing} = nothing,
         dims::Union{Nothing, Int} = nothing,
         verbose::Bool = true
-)
+    )
     promoted = convert(Matrix{Union{Missing, Float64}}, data)
     return imputeSVD!(trycopy(promoted); rank, tol, maxiter, limits, dims, verbose)
 end
@@ -474,7 +576,7 @@ function imputeSVD!(
         limits::Union{Tuple{Float64, Float64}, Nothing},
         dims::Union{Nothing, Int},
         verbose::Bool
-)
+    )
     n, p = size(data)
     k = isnothing(rank) ? 0 : min(rank, p - 1)
     S = zeros(min(n, p))
@@ -493,8 +595,10 @@ function imputeSVD!(
     # print debug information
     C = sum(abs2, mdata - mX) / sum(abs2, mdata)
     err = mean(abs.(odata - oX))
-    verbose && @debug("Before", Diff=sum(mdata-mX), MAE=err, convergence=C,
-        normsq=sum(abs2, mdata), mX[1])
+    verbose && @debug(
+        "Before", Diff = sum(mdata - mX), MAE = err, convergence = C,
+        normsq = sum(abs2, mdata), mX[1]
+    )
 
     for i in 1:maxiter
         isnothing(rank) && (k = min(k + 1, p - 1, n - 1))
@@ -512,8 +616,10 @@ function imputeSVD!(
         err = mean(abs.(odata - oX))
         C = sum(abs2, mdata - mX) / sum(abs2, mdata)
         # Print the error between reconstruction and observed inputs
-        verbose && @debug("Iteration", i, Diff=sum(mdata-mX), MAE=err,
-            MSS=sum(abs2, mdata), convergence=C)
+        verbose && @debug(
+            "Iteration", i, Diff = sum(mdata - mX), MAE = err,
+            MSS = sum(abs2, mdata), convergence = C
+        )
         # Update missing values
         data[mmask] .= X[mmask]
         isfinite(C) && C < tol && break
