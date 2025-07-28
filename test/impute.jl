@@ -77,7 +77,7 @@ end
     @test mat[2, 3] ≈ 1.0
 
     # Test row-wise behavior when dims=1 is explicitly specified
-    result_rowwise = BigRiverJunbi.impute_min(mat_copy; dims=1)
+    result_rowwise = BigRiverJunbi.impute_min(mat_copy; dims = 1)
     @test result_rowwise[1, 2] ≈ minimum([1.0, 3.0])  # row 1 min = 1.0
     @test result_rowwise[2, 3] ≈ minimum([4.0, 5.0])  # row 2 min = 4.0
 
@@ -109,7 +109,7 @@ end
     @test mat[2, 3] ≈ 1.0  # 2.0/2
 
     # Test row-wise behavior when dims=1 is explicitly specified
-    result_rowwise = BigRiverJunbi.impute_half_min(mat_copy; dims=1)
+    result_rowwise = BigRiverJunbi.impute_half_min(mat_copy; dims = 1)
     @test result_rowwise[1, 2] ≈ minimum([2.0, 4.0]) / 2  # 1.0
     @test result_rowwise[2, 3] ≈ minimum([6.0, 8.0]) / 2  # 3.0
 
@@ -117,7 +117,7 @@ end
     mat_int = [2 missing 4; 6 8 missing]
     result = BigRiverJunbi.impute_half_min(mat_int)
     @test result[1, 2] == 1  # 2÷2
-    @test result[2, 3] == 1  # 2÷2    
+    @test result[2, 3] == 1  # 2÷2
 end
 
 @testitem "impute_median_cat and impute_median_cat!" begin
@@ -198,20 +198,20 @@ end
 
     # Test column-wise behavior when dims=2 is specified
     mat_colwise = [1.0 missing 3.0; 4.0 5.0 missing; 7.0 8.0 9.0]
-    result_colwise = BigRiverJunbi.impute_min(mat_colwise; dims=2)
+    result_colwise = BigRiverJunbi.impute_min(mat_colwise; dims = 2)
     @test result_colwise[1, 2] ≈ minimum([5.0, 8.0])  # column 2 min (non-missing values)
     @test result_colwise[2, 3] ≈ minimum([3.0, 9.0])  # column 3 min (non-missing values)
 
     # Test with all missing in one row but not others
     mat_partial_missing = [missing missing missing; 1.0 2.0 3.0]
-    @test_throws ErrorException BigRiverJunbi.impute_min!(mat_partial_missing; dims=1)
+    @test_throws ErrorException BigRiverJunbi.impute_min!(mat_partial_missing; dims = 1)
     # But should work with global behavior
     result_partial = BigRiverJunbi.impute_min(mat_partial_missing)
     @test result_partial[1, 1] ≈ 1.0  # global minimum is 1.0
 
     # Test with all missing in one column but not others
     mat_col_missing = [1.0 missing 3.0; 2.0 missing 4.0]
-    @test_throws ErrorException BigRiverJunbi.impute_min!(mat_col_missing; dims=2)
+    @test_throws ErrorException BigRiverJunbi.impute_min!(mat_col_missing; dims = 2)
     # But should work with global behavior
     result_col = BigRiverJunbi.impute_min(mat_col_missing)
     @test result_col[1, 2] ≈ 1.0  # global minimum is 1.0
