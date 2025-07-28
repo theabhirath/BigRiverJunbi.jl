@@ -1,6 +1,6 @@
 """
     substitute(
-        data::AbstractArray{Union{Missing, Float64}},
+        data::AbstractArray{<:Union{Missing, Real}},
         statistic::Function;
         dims::Union{Nothing, Int} = nothing
     )
@@ -12,39 +12,41 @@ specified dimension and returns a new array without modifying the original array
 
 - `data`: array of values. One example: matrix of metabolomics data, where the rows are
   the features and the columns are the samples.
-- `statistic`: function that calculates the value to substitute the missing values.
+- `statistic`: function that calculates the value to substitute the missing values. The
+  function must return a value of the same type as the data.
 - `dims`: dimension along which the statistic is calculated.
 """
 function substitute(
-        data::AbstractArray{Union{Missing, Float64}},
+        data::AbstractArray{<:Union{Missing, Real}},
         statistic::Function;
         dims::Union{Nothing, Int} = nothing
-)
-    substitute!(trycopy(data), statistic; dims)
+    )
+    return substitute!(trycopy(data), statistic; dims)
 end
 
 """
     substitute!(
-        data::AbstractArray{Union{Missing, Float64}},
+        data::AbstractArray{<:Union{Missing, Real}},
         statistic::Function;
         dims::Union{Nothing, Int} = nothing
     )
 
 Substitutes missing values with the value calculated by the statistic function along the
-specified dimension and modifies the original array in place.
+specified dimension and writes the result back to the original array.
 
 # Arguments
 
 - `data`: array of values. One example: matrix of metabolomics data, where the rows are the
   features and the columns are the samples.
-- `statistic`: function that calculates the value to substitute the missing values.
+- `statistic`: function that calculates the value to substitute the missing values. The
+  function must return a value of the same type as the data.
 - `dims`: dimension along which the statistic is calculated.
 """
 function substitute!(
-        data::AbstractArray{Union{Missing, Float64}},
+        data::AbstractArray{<:Union{Missing, Real}},
         statistic::Function;
         dims::Union{Nothing, Int} = nothing
-)
+    )
     # if dims is nothing, substitute the whole array
     isnothing(dims) && return _substitute!(data, statistic)
     # if dims is specified, it must be smaller than the dimension of the array
@@ -56,67 +58,36 @@ function substitute!(
     return data
 end
 
-function _substitute!(data::AbstractArray{Union{Missing, Float64}}, statistic::Function)
+function _substitute!(data::AbstractArray{<:Union{Missing, Real}}, statistic::Function)
     # get the mask of the non-missing values
     mask = .!ismissing.(data)
     # substitute the missing values with the value calculated by the statistic
     if any(mask)
         x = statistic(disallowmissing(data[mask]))
-        replace!(data, missing => x)
+        try
+            replace!(data, missing => x)
+        catch
+            error(
+                "Failed to replace missing values with the value calculated by " *
+                    "the statistic. This usually happens when the type returned by " *
+                    "the statistic function is not the same as the type of the data. " *
+                    "Please check your statistic function or promote the type of the " *
+                    "data to the type returned by the statistic function and try again."
+            )
+        end
+        return data
     else
         error(
             "All values in the input slice are missing. This usually happens when " *
-            "there is a row or column with all missing values along the specified " *
-            "dimension. Please check your data."
+                "there is a row or column with all missing values along the specified " *
+                "dimension. Please check your data."
         )
     end
     return data
 end
 
 """
-    impute_zero(df::DataFrame; start_col::Int64 = 1)
-
-Replaces missing elements in the specified columns with zero.
-
-# Arguments
-
-- `df`: dataframe with missing values.
-- `start_col`: column index to start imputing from.
-
-# Examples
-
-```jldoctest
-julia> df = DataFrame(A = [1, 2, 3],
-                 B = [missing, missing, missing],
-                 C = [missing, 4, 5],
-                 D = [6, missing, 7],
-                 E = [missing, missing, 10])
-3×5 DataFrame
- Row │ A      B        C        D        E
-     │ Int64  Missing  Int64?   Int64?   Int64?
-─────┼───────────────────────────────────────────
-   1 │     1  missing  missing        6  missing
-   2 │     2  missing        4  missing  missing
-   3 │     3  missing        5        7       10
-
-julia> BigRiverJunbi.impute_zero(df)
-3×5 DataFrame
- Row │ A         B         C         D         E
-     │ Float64?  Float64?  Float64?  Float64?  Float64?
-─────┼──────────────────────────────────────────────────
-   1 │      1.0       0.0       0.0       6.0       0.0
-   2 │      2.0       0.0       4.0       0.0       0.0
-   3 │      3.0       0.0       5.0       7.0      10.0
-```
-"""
-function impute_zero(df::DataFrame; start_col::Int64 = 1)
-    m = Matrix{Union{Missing, Float64}}(df[:, start_col:end])
-    m = impute_zero(m)
-    return DataFrame(m, Symbol.(names(df)[start_col:end]))
-end
-
-"""
-    impute_zero(data::Matrix{Union{Missing, Float64}})
+    impute_zero(data::Matrix{<:Union{Missing, Real}})
 
 Returns a matrix with missing elements replaced with zero without modifying the original
 matrix.
@@ -126,91 +97,110 @@ matrix.
 - `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
         and the columns are the features.
 """
-impute_zero(data::Matrix{Union{Missing, Float64}}) = impute_zero!(trycopy(data))
+impute_zero(data::Matrix{<:Union{Missing, Real}}) = impute_zero!(trycopy(data))
 
 """
-    impute_zero!(data::Matrix{Union{Missing, Float64}})
+    impute_zero!(data::Matrix{<:Union{Missing, Real}})
 
-Modifies the original matrix in place to replace missing elements with zero.
+Replace missing elements with zero and writes the result back to the original matrix.
 
 # Arguments
 
 - `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
   and the columns are the features.
 """
-impute_zero!(data::Matrix{Union{Missing, Float64}}) = substitute!(data, x -> 0; dims = 1)
+impute_zero!(data::Matrix{<:Union{Missing, Real}}) = substitute!(data, x -> 0)
 
 """
-    impute_min(df::DataFrame; start_col::Int64 = 1)
+    impute_min(data::Matrix{<:Union{Missing, Real}}; dims::Union{Nothing, Int} = nothing)
 
-Replaces missing elements in the specified columns with the minimum of non-missing elements
-in the corresponding variable.
+Replaces missing elements with the minimum value of the non-missing elements and returns a
+new matrix without modifying the original matrix.
 
 # Arguments
 
-- `df`: dataframe with missing values.
-- `start_col`: column index to start imputing from.
-
-# Examples
-
-```jldoctest
-julia> df = DataFrame(A = [1, 2, 3],
-                 B = [missing, missing, missing],
-                 C = [missing, 4, 5],
-                 D = [6, missing, 7],
-                 E = [missing, missing, 10])
-3×5 DataFrame
- Row │ A      B        C        D        E
-     │ Int64  Missing  Int64?   Int64?   Int64?
-─────┼───────────────────────────────────────────
-   1 │     1  missing  missing        6  missing 
-   2 │     2  missing        4  missing  missing 
-   3 │     3  missing        5        7       10
-
-julia> BigRiverJunbi.impute_min(df)
-3×5 DataFrame
- Row │ A         B         C         D         E
-     │ Float64?  Float64?  Float64?  Float64?  Float64? 
-─────┼──────────────────────────────────────────────────
-   1 │      1.0       1.0       1.0       6.0       1.0
-   2 │      2.0       2.0       4.0       2.0       2.0
-   3 │      3.0       3.0       5.0       7.0      10.0
-```
+- `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
+  and the columns are the features.
+- `dims`: dimension along which the minimum values are calculated. Default is nothing, which
+  means the whole matrix is used.
 """
-function impute_min(df::DataFrame; start_col::Int64 = 1)
-    m = Matrix{Union{Missing, Float64}}(df[:, start_col:end])
-    m = impute_min(m)
-    return DataFrame(m, Symbol.(names(df)[start_col:end]))
+function impute_min(data::Matrix{<:Union{Missing, Real}}; dims::Union{Nothing, Int} = nothing)
+    return impute_min!(trycopy(data); dims)
 end
-impute_min(data::Matrix{Union{Missing, Float64}}) = impute_min!(trycopy(data))
-impute_min!(data::Matrix{Union{Missing, Float64}}) = substitute!(data, minimum; dims = 1)
 
 """
-    impute_min_prob(df::DataFrame; start_col::Int64 = 1, q = 0.01; tune_sigma = 1)
+    impute_min!(data::Matrix{<:Union{Missing, Real}}; dims::Union{Nothing, Int} = nothing)
 
-Replaces missing values in the specified columns with random draws from a gaussian
-distribution centered in the minimum value observed and with standard deviation equal to
-the median value of the population of line-wise standard deviations.
+Replaces missing elements with the minimum value of the non-missing elements and writes the
+result back to the original matrix.
 
 # Arguments
 
-- `df`: dataframe with missing values.
-- `start_col`: column index to start imputing from.
-- `q`: quantile of the minimum values to use for imputation. Default is 0.01.
-- `tune_sigma`: coefficient that controls the sd of the MNAR distribution:
-                - 1 if the complete data distribution is supposed to be gaussian.
-                - 0 < tune_sigma < 1 if the complete data distribution is supposed to be
-                  left-censored.
-               Default is 1.0.
+- `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
+  and the columns are the features.
+- `dims`: dimension along which the minimum values are calculated. Default is nothing, which
+  means the whole matrix is used.
 """
-function impute_min_prob(df::DataFrame; start_col::Int64 = 1, q = 0.01, tune_sigma = 1)
-    m = Matrix{Union{Missing, Float64}}(df[:, start_col:end])
-    m = impute_min_prob(m, q; tune_sigma)
-    return DataFrame(m, Symbol.(names(df)[start_col:end]))
+function impute_min!(data::Matrix{<:Union{Missing, Real}}; dims::Union{Nothing, Int} = nothing)
+    return substitute!(data, minimum; dims)
 end
 
 """
-    impute_min_prob(data::Matrix{Union{Missing, Float64}}, q = 0.01; tune_sigma = 1)
+    impute_half_min(data::Matrix{<:Union{Missing, Real}}; dims::Union{Nothing, Int} = nothing)
+
+Replaces missing elements with half of the minimum value of the non-missing elements and
+returns a new matrix without modifying the original matrix.
+
+!!! note
+    For integer matrices, the half of the minimum value is calculated by integer division i.e.
+    the result of the division is rounded down to the nearest integer if the result is not
+    an integer.
+
+# Arguments
+
+- `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
+  and the columns are the features.
+- `dims`: dimension along which the minimum values are calculated. Default is nothing, which
+  means the whole matrix is used.
+"""
+function impute_half_min(data::Matrix{<:Union{Missing, Real}}; dims::Union{Nothing, Int} = nothing)
+    return impute_half_min!(trycopy(data); dims)
+end
+
+"""
+    impute_half_min!(data::Matrix{<:Union{Missing, Real}}; dims::Union{Nothing, Int} = nothing)
+
+Replaces missing elements with half of the minimum value of the non-missing elements and
+writes the result back to the original matrix.
+
+!!! note
+    For integer matrices, the half of the minimum value is calculated by integer division
+    i.e. the result of the division is rounded down to the nearest integer if the result is
+    not an integer.
+
+# Arguments
+
+- `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
+  and the columns are the features.
+- `dims`: dimension along which the minimum values are calculated. Default is nothing, which
+  means the whole matrix is used.
+"""
+function impute_half_min!(data::Matrix{<:Union{Missing, Real}}; dims::Union{Nothing, Int} = nothing)
+    return substitute!(data, x -> minimum(x) / 2; dims)
+end
+
+function impute_half_min!(
+        data::Matrix{<:Union{Missing, Integer}}; dims::Union{Nothing, Int} = nothing
+    )
+    return substitute!(data, x -> minimum(x) ÷ 2; dims)
+end
+
+"""
+    impute_min_prob(
+        data::Matrix{<:Union{Missing, Real}}, q::Float64 = 0.01;
+        tune_sigma::Float64 = 1.0, dims::Int = 1,
+        rng::AbstractRNG = Random.default_rng()
+    )
 
 Replaces missing values with random draws from a gaussian distribution centered in the
 minimum value observed and with standard deviation equal to the median value of the
@@ -222,154 +212,95 @@ original matrix.
 - `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
   and the columns are the features.
 - `q`: quantile of the minimum values to use for imputation. Default is 0.01.
+- `dims`: dimension along which the minimum values are calculated. Default is 1.
 - `tune_sigma`: coefficient that controls the sd of the MNAR distribution:
                 - 1 if the complete data distribution is supposed to be gaussian.
                 - 0 < tune_sigma < 1 if the complete data distribution is supposed to be
                   left-censored.
                Default is 1.0.
 """
-function impute_min_prob(data::Matrix{Union{Missing, Float64}}, q = 0.01; tune_sigma = 1)
-    impute_min_prob!(trycopy(data), q; tune_sigma)
+function impute_min_prob(
+        data::Matrix{<:Union{Missing, Real}}, q::Float64 = 0.01;
+        tune_sigma::Float64 = 1.0, dims::Int = 1,
+        rng::AbstractRNG = Random.default_rng()
+    )
+    promoted = convert(Matrix{Union{Missing, Float64}}, data)
+    return impute_min_prob!(trycopy(promoted), q; tune_sigma, dims, rng)
 end
 
 """
-    impute_min_prob!(data::Matrix{Union{Missing, Float64}}, q = 0.01; tune_sigma = 1)
+    impute_min_prob!(
+        data::Matrix{Union{Missing, Float64}}, q = 0.01;
+        tune_sigma = 1, dims::Int = 1,
+        rng::AbstractRNG = Random.default_rng()
+    )
 
-Replaces missing values with random draws from a gaussian distribution centered in the
+Replaces missing values with random draws from a gaussian distribution centered around the
 minimum value observed and with standard deviation equal to the median value of the
-population of line-wise standard deviations. Modifies the original matrix in place.
+population of line-wise standard deviations. Writes the result back to the original matrix.
 
 # Arguments
 
 - `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
   and the columns are the features.
 - `q`: quantile of the minimum values to use for imputation. Default is 0.01.
+- `dims`: dimension along which the minimum values are calculated. Default is 1.
 - `tune_sigma`: coefficient that controls the sd of the MNAR distribution:
                 - 1 if the complete data distribution is supposed to be gaussian.
                 - 0 < tune_sigma < 1 if the complete data distribution is supposed to be
                   left-censored.
-               Default is 1.0.
+                Default is 1.0.
 """
-function impute_min_prob!(data::Matrix{Union{Missing, Float64}}, q = 0.01; tune_sigma = 1)
+function impute_min_prob!(
+        data::Matrix{Union{Missing, Float64}}, q = 0.01;
+        tune_sigma = 1, dims::Int = 1,
+        rng::AbstractRNG = Random.default_rng()
+    )
+    @assert 0 < q < 1 "q must be between 0 and 1"
+    @assert 0 <= tune_sigma <= 1 "tune_sigma must be between 0 and 1"
+    @assert dims ∈ (1, 2) "dims must be 1 or 2"
     n_samples, n_features = size(data)
     # select the minimum values sample-wise (corresponding to the q-th quantile)
-    min_vals = mapslices(data, dims = 1) do x
+    min_vals = mapslices(data; dims) do x
+        # edge case: all values in a slice are missing
+        if all(ismissing, x)
+            throw(
+                error(
+                    "All values in a slice are missing. This usually happens when " *
+                        "there is a row or column with all missing values along the " *
+                        "specified dimension. Please check your data."
+                )
+            )
+        end
         quantile(skipmissing(x), q)
     end
-    # estimate protein-wise standard deviation using only proteins containing more than 50% non-NAs
-    pNA_cols = sum(!ismissing, data; dims = 1) ./ n_samples
+    # estimate standard deviation using only features containing more than 50% non-NAs
+    pNA_cols = sum(!ismissing, data; dims) ./ n_samples
     pNA_cols_mask = vec(pNA_cols .> 0.5)
-    data_filtered = data[:, pNA_cols_mask]
-    sd_vals = mapslices(data_filtered; dims = 1) do x
+    data_filtered = dims == 1 ? data[:, pNA_cols_mask] : data[pNA_cols_mask, :]
+    sd_vals = mapslices(data_filtered; dims) do x
         std(skipmissing(x))
     end
     sd_temp = median(sd_vals) * tune_sigma
     # generate data from a normal distribution with the estimated parameters
     for i in 1:n_samples
         dist = Normal(min_vals[i], sd_temp)
-        curr_sample = data[:, i]
+        curr_sample = dims == 1 ? data[:, i] : data[i, :]
         curr_sample_imputed = trycopy(curr_sample)
         missing_idx = findall(ismissing, curr_sample)
-        curr_sample_imputed[missing_idx] .= rand(dist, n_features)[missing_idx]
-        data[:, i] = curr_sample_imputed
+        curr_sample_imputed[missing_idx] .= rand(rng, dist, n_features)[missing_idx]
+        if dims == 1
+            data[:, i] = curr_sample_imputed
+        else
+            data[i, :] = curr_sample_imputed
+        end
     end
     return data
 end
 
-"""
-    impute_half_min(df::DataFrame; start_col::Int64 = 1)
-
-Replaces missing elements in the specified columns with half of the minimum of
-non-missing elements in the corresponding variable.
-
-# Arguments
-
-- `df`: dataframe with missing values.
-- `start_col`: column index to start imputing from.
-
-# Examples
-
-```jldoctest
-julia> df = DataFrame(A = [1, 2, 3],
-                 B = [missing, missing, missing],
-                 C = [missing, 4, 5],
-                 D = [6, missing, 7],
-                 E = [missing, missing, 10])
-3×5 DataFrame
- Row │ A      B        C        D        E
-     │ Int64  Missing  Int64?   Int64?   Int64?
-─────┼───────────────────────────────────────────
-   1 │     1  missing  missing        6  missing
-   2 │     2  missing        4  missing  missing
-   3 │     3  missing        5        7       10
-
-julia> BigRiverJunbi.impute_half_min(df)
-3×5 DataFrame
- Row │ A         B         C         D         E
-     │ Float64?  Float64?  Float64?  Float64?  Float64?
-─────┼──────────────────────────────────────────────────
-   1 │      1.0       0.5       0.5       6.0       0.5
-   2 │      2.0       1.0       4.0       1.0       1.0
-   3 │      3.0       1.5       5.0       7.0      10.0
-```
-"""
-function impute_half_min(df::DataFrame; start_col::Int64 = 1)
-    m = Matrix{Union{Missing, Float64}}(df[:, start_col:end])
-    m = impute_half_min(m)
-    return DataFrame(m, Symbol.(names(df)[start_col:end]))
-end
-
-function impute_half_min(m::Matrix{Union{Missing, Float64}})
-    substitute(m, x -> minimum(x) / 2; dims = 1)
-end
 
 """
-    impute_cat(df_missing::DataFrame; start_col::Int64 = 1)
-
-Returns imputated dataframe based on a categorical imputation:
-    - 0: Missing values
-    - 1: Values below the median
-    - 2: Values equal to or above the median
-
-# Arguments
-
-- `df_missing`: dataframe with missing values.
-- `start_col`: column index to start imputing from.
-
-# Examples
-
-```jldoctest
-julia> df = DataFrame(A = [1, 2, 3],
-                 B = [missing, missing, missing],
-                 C = [missing, 4, 5],
-                 D = [6, missing, 7],
-                 E = [missing, missing, 10])
-3×5 DataFrame
- Row │ A      B        C        D        E
-     │ Int64  Missing  Int64?   Int64?   Int64?
-─────┼───────────────────────────────────────────
-   1 │     1  missing  missing        6  missing
-   2 │     2  missing        4  missing  missing
-   3 │     3  missing        5        7       10
-
-julia> BigRiverJunbi.impute_cat(df)
-3×5 DataFrame
- Row │ A         B         C         D         E
-     │ Float64?  Float64?  Float64?  Float64?  Float64?
-─────┼──────────────────────────────────────────────────
-   1 │      1.0       0.0       0.0       1.0       0.0
-   2 │      2.0       0.0       1.0       0.0       0.0
-   3 │      2.0       0.0       2.0       2.0       2.0
-```
-"""
-function impute_cat(df_missing::DataFrame; start_col::Int64 = 1)
-    m = Matrix{Union{Missing, Float64}}(df_missing[:, start_col:end])
-    m = impute_cat(m)
-    return DataFrame(m, Symbol.(names(df_missing)[start_col:end]))
-end
-
-"""
-    impute_cat(data::Matrix{Union{Missing, Float64}})
+    impute_median_cat(data::Matrix{<:Union{Missing, Real}})
 
 Imputes missing elements based on a categorical imputation:
     - 0: Missing values
@@ -382,23 +313,25 @@ Returns a new matrix without modifying the original matrix.
 - `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
   and the columns are the features.
 """
-impute_cat(data::Matrix{Union{Missing, Float64}}) = impute_cat!(trycopy(data))
+function impute_median_cat(data::Matrix{<:Union{Missing, Real}})
+    return impute_median_cat!(trycopy(data))
+end
 
 """
-    impute_cat!(data::Matrix{Union{Missing, Float64}})
+    impute_median_cat!(data::Matrix{<:Union{Missing, Real}})
 
 Imputes missing elements based on a categorical imputation:
     - 0: Missing values
     - 1: Values below the median
     - 2: Values equal to or above the median
-Modifies the original matrix in place.
+Writes the result back to the original matrix.
 
 # Arguments
 
 - `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
   and the columns are the features.
 """
-function impute_cat!(data::Matrix{Union{Missing, Float64}})
+function impute_median_cat!(data::Matrix{<:Union{Missing, Real}})
     @views for i in axes(data, 2)
         # if there are only missing values, skip
         if all(ismissing, data[:, i])
@@ -423,8 +356,8 @@ end
         k::Int = 1;
         threshold::Float64 = 0.5,
         dims::Union{Nothing, Int} = nothing,
-        distance::M = Euclidean()
-    ) where {M <: NearestNeighbors.MinkowskiMetric}
+        distance::NearestNeighbors.MinkowskiMetric = Euclidean()
+    )
 
 Replaces missing elements based on k-nearest neighbors (KNN). Returns a new matrix
 without modifying the original matrix. This method is almost an exact copy of the KNN
@@ -435,40 +368,38 @@ imputation method from [Impute.jl](https://github.com/invenia/Impute.jl).
 - `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
   and the columns are the features.
 - `k`: number of nearest neighbors to use for imputation.
-- `threshold`: threshold for the number of missing neighbors.
+- `threshold`: threshold for the number of missing neighbors above which the imputation is
+  skipped.
 - `dims`: dimension along which the statistic is calculated.
 - `distance`: distance metric to use for the nearest neighbors search, taken from
   Distances.jl. Default is `Euclidean()`. This can only be one of the
   Minkowski metrics i.e. Euclidean, Cityblock, Minkowski and Chebyshev.
 """
-# TODO: add a example/doctest
 function imputeKNN(
-        data::AbstractMatrix{Union{Missing, Float64}},
+        data::AbstractMatrix{<:Union{Missing, Real}},
         k::Int = 1;
         threshold::Float64 = 0.5,
         dims::Union{Nothing, Int} = nothing,
-        distance::M = Euclidean()
-) where {M <: NearestNeighbors.MinkowskiMetric}
+        distance::NearestNeighbors.MinkowskiMetric = Euclidean()
+    )
     # check arguments
-    k < 1 &&
-        throw(ArgumentError("The number of nearset neighbors should be greater than 0"))
+    k < 1 && throw(ArgumentError("The number of nearset neighbors should be greater than 0"))
     !(0 < threshold < 1) &&
         throw(ArgumentError("Missing neighbors threshold should be within 0 to 1"))
 
-    imputeKNN!(trycopy(data), k + 1, threshold, dims, distance)
+    promoted = convert(Matrix{Union{Missing, Float64}}, data)
+    return imputeKNN!(trycopy(promoted), k + 1, threshold, dims, distance)
 end
 
 """
     imputeKNN!(
         data::AbstractMatrix{Union{Missing, Float64}},
-        k::Int,
-        threshold::Float64,
-        dims::Union{Nothing, Int},
-        distance::M
-    ) where {M <: NearestNeighbors.MinkowskiMetric}
+        k::Int, threshold::Float64, dims::Union{Nothing, Int},
+        distance::NearestNeighbors.MinkowskiMetric
+    )
 
-Replaces missing elements based on k-nearest neighbors (KNN) imputation. Modifies the
-original matrix in place. This method is almost an exact copy of the KNN imputation
+Replaces missing elements based on k-nearest neighbors (KNN) imputation. Writes the result
+back to the original matrix. This method is almost an exact copy of the KNN imputation
 method from [Impute.jl](https://github.com/invenia/Impute.jl).
 
 # Arguments
@@ -476,7 +407,8 @@ method from [Impute.jl](https://github.com/invenia/Impute.jl).
 - `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
   and the columns are the features.
 - `k`: number of nearest neighbors to use for imputation.
-- `threshold`: threshold for the number of missing neighbors.
+- `threshold`: threshold for the number of missing neighbors above which the imputation is
+  skipped.
 - `dims`: dimension along which the statistic is calculated.
 - `distance`: distance metric to use for the nearest neighbors search, taken from
   Distances.jl. Default is `Euclidean()`. This can only be one of the
@@ -484,11 +416,9 @@ method from [Impute.jl](https://github.com/invenia/Impute.jl).
 """
 function imputeKNN!(
         data::AbstractMatrix{Union{Missing, Float64}},
-        k::Int,
-        threshold::Float64,
-        dims::Union{Nothing, Int},
-        distance::M
-) where {M <: NearestNeighbors.MinkowskiMetric}
+        k::Int, threshold::Float64, dims::Union{Nothing, Int},
+        distance::NearestNeighbors.MinkowskiMetric
+    )
     # KDTree wants dims x nrows, so we transpose the data
     X = dims == 1 ? data : transpose(data)
     # get mask array
@@ -535,119 +465,79 @@ function imputeKNN!(
 end
 
 """
-    imputeKNN(df::DataFrame; k = 5, threshold = 0.2, start_col = 1)
-
-Replaces missing elements based on k-nearest neighbors (KNN) imputation.
-
-# Arguments
-
-- `df`: dataframe with missing values.
-- `k`: number of nearest neighbors to use for imputation.
-- `threshold`: threshold for the number of missing neighbors.
-"""
-function imputeKNN(
-        df::DataFrame;
-        k::Int = 5,
-        threshold::Float64 = 0.2,
-        start_col::Int64 = 1
-)
-    mat = Matrix{Union{Missing, Float64}}(df[:, start_col:end])
-    mat = imputeKNN(mat, k; threshold, dims = 1)
-    return DataFrame(mat, Symbol.(names(df)[start_col:end]))
-end
-
-"""
-    impute_QRILC(df::DataFrame; start_col::Int64 = 1)
-
-Replaces missing elements in the specified columns based on the "Quantile regression
-Imputation for left-censored data" (QRILC) method.
-
-# Arguments
-
-- `df`: dataframe with missing values.
-- `start_col`: column index to start imputing from.
-"""
-# TODO: add a example/doctest
-function impute_QRILC(df::DataFrame; start_col::Int64 = 1)
-    mat = Matrix{Union{Missing, Float64}}(df[:, start_col:end])
-    mat = impute_QRILC(mat)
-    return DataFrame(mat, Symbol.(names(df)[start_col:end]))
-end
-
-"""
     impute_QRILC(
-        data::Matrix{Union{Missing, Float64}};
+        data::Matrix{<:Union{Missing, Real}};
         tune_sigma::Float64 = 1.0,
         eps::Float64 = 0.005
     )
 
 Returns imputated matrix based on the "Quantile regression Imputation for left-censored
 data" (QRILC) method. The function is based on the function `impute.QRILC` from the
-`imputeLCMD.R` package, with one difference: the default value of `eps` is set to 0.005
+`imputeLCMD` R package, with one difference: the default value of `eps` is set to 0.005
 instead of 0.001.
 
 # Arguments
 
 - `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
   and the columns are the features.
-- `tune_sigma`: coefficient that controls the sd of the MNAR distribution:
+- `tune_sigma`: coefficient that controls the SD of the MNAR distribution:
                 - 1 if the complete data distribution is supposed to be gaussian.
                 - 0 < tune_sigma < 1 if the complete data distribution is supposed to be
                   left-censored.
   Default is 1.0.
 - `eps`: small value added to the quantile for stability.
+- `rng`: random number generator. Default is `Random.default_rng()`.
 """
 function impute_QRILC(
-        data::Matrix{Union{Missing, Float64}};
-        tune_sigma::Float64 = 1.0,
-        eps::Float64 = 0.005
-)
-    impute_QRILC!(trycopy(data); tune_sigma, eps)
+        data::Matrix{<:Union{Missing, Real}};
+        tune_sigma = 1.0, eps = 0.005,
+        rng::AbstractRNG = Random.default_rng()
+    )
+    promoted = convert(Matrix{Union{Missing, Float64}}, data)
+    return impute_QRILC!(trycopy(promoted); tune_sigma, eps, rng)
 end
 
 """
     impute_QRILC!(
         data::Matrix{Union{Missing, Float64}};
-        tune_sigma::Float64 = 1.0,
-        eps::Float64 = 0.005
+        tune_sigma::Float64 = 1.0, eps::Float64 = 0.005,
+        rng::AbstractRNG = Random.default_rng()
     )
 
 Imputes missing elements based on the "Quantile regression Imputation for left-censored
-data" (QRILC) method. Modifies the original matrix in place. The function is based on
-the function `impute.QRILC` from the `imputeLCMD.R` package, with one difference: the
+data" (QRILC) method. Writes the result back to the original matrix. The function is based on
+the function `impute.QRILC` from the `imputeLCMD` R package, with one difference: the
 default value of `eps` is set to 0.005 instead of 0.001.
 
 # Arguments
 
 - `data`: matrix of omics value, e.g., metabolomics matrix, where the rows are the samples
   and the columns are the features.
-- `tune_sigma`: coefficient that controls the sd of the MNAR distribution:
+- `tune_sigma`: coefficient that controls the SD of the MNAR distribution:
                 - 1 if the complete data distribution is supposed to be gaussian.
                 - 0 < tune_sigma < 1 if the complete data distribution is supposed to be
                   left-censored.
 - `eps`: small value added to the quantile for stability.
+- `rng`: random number generator. Default is `Random.default_rng()`.
 """
 # TODO: elaborate on eps and why it is set to 0.005
 function impute_QRILC!(
-        data::Matrix{Union{Missing, Float64}};
-        tune_sigma::Float64 = 1.0,
-        eps::Float64 = 0.005
-)
+        data::Matrix{<:Union{Missing, Float64}};
+        tune_sigma = 1.0, eps = 0.005,
+        rng::AbstractRNG = Random.default_rng()
+    )
     # Get dimensions of the data
     n_samples, n_features = size(data)
     for i in 1:n_samples
         curr_sample = data[:, i]
         # Calculate the percentage of missing values
         pNAs = count(ismissing, curr_sample) / length(curr_sample)
-        # Estimate the mean and standard deviation of the original distribution using quantile regression
+        # Estimate the mean and standard deviation of the original
+        # distribution using quantile regression
         upper_q = 0.99
-        q_normal = quantile(Normal(0, 1), LinRange(pNAs + eps, upper_q + eps, 100))
-        q_curr_sample = quantile(
-            skipmissing(curr_sample), LinRange(eps, upper_q + eps, 100)
-        )
-        temp_QR = lm(
-            hcat(ones(length(q_normal), 1), reshape(q_normal, :, 1)), q_curr_sample
-        )
+        q_normal = map(Base.Fix1(quantile, Normal(0, 1)), LinRange(pNAs + eps, upper_q + eps, 100))
+        q_curr_sample = quantile(skipmissing(curr_sample), LinRange(eps, upper_q + eps, 100))
+        temp_QR = lm(hcat(ones(length(q_normal), 1), reshape(q_normal, :, 1)), q_curr_sample)
         # get the coefficients of the quantile regression
         coefs = coef(temp_QR)
         mean_CDD, sd_CDD = coefs[1], abs(coefs[2])
@@ -658,8 +548,82 @@ function impute_QRILC!(
         )
         curr_sample_imputed = trycopy(curr_sample)
         missing_idx = findall(ismissing, curr_sample)
-        curr_sample_imputed[missing_idx] .= rand(truncated_dist, n_features)[missing_idx]
+        curr_sample_imputed[missing_idx] .= rand(rng, truncated_dist, n_features)[missing_idx]
         data[:, i] = curr_sample_imputed
     end
+    return data
+end
+
+### TODO: add docstrings for the SVD imputation methods
+function imputeSVD(
+        data::AbstractMatrix{<:Union{Missing, Real}};
+        rank::Union{Nothing, Int} = nothing,
+        tol::Float64 = 1.0e-10,
+        maxiter::Int = 100,
+        limits::Union{Tuple{Float64, Float64}, Nothing} = nothing,
+        dims::Union{Nothing, Int} = nothing,
+        verbose::Bool = true
+    )
+    promoted = convert(Matrix{Union{Missing, Float64}}, data)
+    return imputeSVD!(trycopy(promoted); rank, tol, maxiter, limits, dims, verbose)
+end
+
+function imputeSVD!(
+        data::AbstractMatrix{Union{Missing, Float64}};
+        rank::Union{Nothing, Int},
+        tol::Float64,
+        maxiter::Int,
+        limits::Union{Tuple{Float64, Float64}, Nothing},
+        dims::Union{Nothing, Int},
+        verbose::Bool
+    )
+    n, p = size(data)
+    k = isnothing(rank) ? 0 : min(rank, p - 1)
+    S = zeros(min(n, p))
+    X = zeros(n, p)
+
+    # Get our before and after views of our missing and non-missing data
+    mmask = ismissing.(data)
+    omask = .!mmask
+    mdata = data[mmask]
+    mX = X[mmask]
+    odata = data[omask]
+    oX = X[omask]
+
+    # substitute missing values with median
+    substitute!(data, median; dims)
+    # print debug information
+    C = sum(abs2, mdata - mX) / sum(abs2, mdata)
+    err = mean(abs.(odata - oX))
+    verbose && @debug(
+        "Before", Diff = sum(mdata - mX), MAE = err, convergence = C,
+        normsq = sum(abs2, mdata), mX[1]
+    )
+
+    for i in 1:maxiter
+        isnothing(rank) && (k = min(k + 1, p - 1, n - 1))
+        # Compute the SVD and produce a low-rank approximation of the data
+        F = svd(data)
+        S[1:k] .= F.S[1:k]
+        X = F.U * Diagonal(S) * F.Vt
+        # Clamp the values if necessary
+        !isnothing(limits) && clamp!(X, limits...)
+        # Test for convergence
+        mdata = data[mmask]
+        mX = X[mmask]
+        odata = data[omask]
+        oX = X[omask]
+        err = mean(abs.(odata - oX))
+        C = sum(abs2, mdata - mX) / sum(abs2, mdata)
+        # Print the error between reconstruction and observed inputs
+        verbose && @debug(
+            "Iteration", i, Diff = sum(mdata - mX), MAE = err,
+            MSS = sum(abs2, mdata), convergence = C
+        )
+        # Update missing values
+        data[mmask] .= X[mmask]
+        isfinite(C) && C < tol && break
+    end
+
     return data
 end

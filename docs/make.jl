@@ -1,8 +1,13 @@
 using BigRiverJunbi
+using DataFrames
 using Documenter
+using DocumenterVitepress
+
+DocMeta.setdocmeta!(BigRiverJunbi, :DocTestSetup, :(using BigRiverJunbi); recursive = true)
 
 DocMeta.setdocmeta!(
-    BigRiverJunbi,
+    isdefined(Base, :get_extension) ? Base.get_extension(BigRiverJunbi, :DataFramesExt) :
+        BigRiverJunbi.DataFramesExt,
     :DocTestSetup,
     :(using BigRiverJunbi, DataFrames);
     recursive = true
@@ -12,16 +17,16 @@ makedocs(;
     modules = [BigRiverJunbi],
     authors = "Abhirath Anand <74202102+theabhirath@users.noreply.github.com> and contributors",
     sitename = "BigRiverJunbi.jl",
-    format = Documenter.HTML(;
-        canonical = "https://senresearch.github.io/BigRiverJunbi.jl",
-        edit_link = "main",
-        assets = String[]
+    format = DocumenterVitepress.MarkdownVitepress(
+        repo = "https://github.com/senresearch/BigRiverJunbi.jl",
     ),
-    pages = ["Home" => "index.md"]
+    pages = ["Home" => "index.md", "API" => "api.md", "DataFrames" => "df-api.md"]
 )
 
-deploydocs(; 
-    repo = "github.com/senresearch/BigRiverJunbi.jl", 
+DocumenterVitepress.deploydocs(;
+    repo = "github.com/senresearch/BigRiverJunbi.jl",
+    target = "build",
     devbranch = "main",
-    devurl = "stable"
+    branch = "gh-pages",
+    push_preview = true
 )

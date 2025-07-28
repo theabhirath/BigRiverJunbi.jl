@@ -1,5 +1,3 @@
-using TestItems
-
 @testitem "doctests" begin
     using Documenter
     DocMeta.setdocmeta!(
