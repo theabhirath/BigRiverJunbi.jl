@@ -27,6 +27,3 @@ Manifest*.toml
 */node_modules/*
 */package.json
 */package-lock.json
-
-# Example files
-example/
