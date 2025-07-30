@@ -31,7 +31,6 @@ DocumenterVitepress.deploydocs(;
     repo = "github.com/senresearch/BigRiverJunbi.jl",
     target = "build",
     devbranch = "main",
-    devurl = "stable",
     branch = "gh-pages",
     push_preview = true
 )
