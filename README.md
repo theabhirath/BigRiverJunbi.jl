@@ -4,6 +4,7 @@ _Statistical Tools for Data Preprocessing (Imputation, Normalization, Transforma
 
 [![CI](https://github.com/senresearch/BigRiverJunbi.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/senresearch/BigRiverJunbi.jl/actions/workflows/CI.yml)
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://senresearch.github.io/BigRiverJunbi.jl/stable)
+[![Stable](https://img.shields.io/badge/docs-dev-blue.svg)](https://senresearch.github.io/BigRiverJunbi.jl/dev)
 [![codecov](https://codecov.io/gh/senresearch/BigRiverJunbi.jl/graph/badge.svg?token=FFRLyzBmUd)](https://codecov.io/gh/senresearch/BigRiverJunbi.jl)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
